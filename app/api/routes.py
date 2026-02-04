@@ -4,6 +4,9 @@ from app.services.rebound_detector import detect_rebound
 from app.services.behavior_analyzer import analyze_behavior
 from app.services.recommendation_engine import generate_recommendations
 from app.services.metrics_engine import calculate_climate_metrics
+from app.services.dashboard_formatter import format_dashboard_response
+from app.services.metrics_engine import calculate_climate_metrics
+from app.services.scenario_engine import simulate_scenario
 
 router = APIRouter()
 
@@ -28,10 +31,20 @@ def analyze():
         behavior_result
     )
 
+    dashboard_response = format_dashboard_response(
+        rebound_result,
+        behavior_result,
+        recommendation_result,
+        metrics_result
+    )
+
+    scenario_result = simulate_scenario(
+    rebound_result,
+    reduction_factor=0.1
+    )
+
     return {
-        "rebound_analysis": rebound_result,
-        "behavior_analysis": behavior_result,
-        "recommendations": recommendation_result,
-        "climate_metrics": metrics_result
+    "dashboard": dashboard_response,
+    "scenario_projection": scenario_result
     }
 

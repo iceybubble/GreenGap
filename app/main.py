@@ -4,9 +4,18 @@ from app.services.rebound_detector import detect_rebound
 from app.services.behavior_analyzer import analyze_behavior
 from app.services.recommendation_engine import generate_recommendations
 from app.api.routes import router
+from fastapi.middleware.cors import CORSMiddleware
 
 #CREATE APP FIRST
 app = FastAPI(title="GreenGap Backend")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # allow frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(router)
 
