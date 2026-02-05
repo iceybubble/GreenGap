@@ -1,7 +1,39 @@
+import { useEffect, useState } from "react";
+import { fetchDashboard } from "../services/api";
+import SummaryCards from "../components/SummaryCards";
+import EmissionsChart from "../components/EmissionsChart";
+import Recommendations from "../components/Recommendations";
+
 export default function Dashboard() {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    fetchDashboard()
+      .then((res) => {
+        console.log("API RESPONSE:", res.data); //  debug
+        setData(res.data.dashboard);
+      })
+      .catch((err) => {
+        console.error("API ERROR:", err);
+      });
+  }, []);
+
+  if (!data) {
+    return <h2>Loading GreenGap Dashboard...</h2>;
+  }
+
   return (
-    <div>
-      <h1>Dashboard Loaded Successfully</h1>
-    </div>
-  );
+  <div style={{ padding: "20px" }}>
+    <h1> GreenGap Climate Dashboard</h1>
+
+    <SummaryCards summary={data.summary_cards} />
+
+    <EmissionsChart chartData={data.emissions_chart} />
+
+    <Recommendations data={data} />
+  </div>
+);
+
+
+
 }

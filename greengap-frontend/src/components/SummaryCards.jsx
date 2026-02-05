@@ -1,27 +1,14 @@
 export default function SummaryCards({ summary }) {
-  // Prevent crash if data not loaded yet
   if (!summary) {
     return <p>Loading summary...</p>;
   }
 
   return (
     <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
-      <Card
-        title="Sustainability Index"
-        value={Number(summary.sustainability_index ?? 0).toFixed(1)}
-      />
-      <Card
-        title="CO₂ Saved"
-        value={Number(summary.co2_saved ?? 0).toFixed(2)}
-      />
-      <Card
-        title="Efficiency Score"
-        value={Number(summary.efficiency_score ?? 0).toFixed(1)}
-      />
-      <Card
-        title="Behavior Score"
-        value={summary.behavior_score ?? 0}
-      />
+      <Card title="Sustainability Index" value={safe(summary.sustainability_index)} />
+      <Card title="CO₂ Saved" value={safe(summary.co2_saved)} />
+      <Card title="Efficiency Score" value={safe(summary.efficiency_score)} />
+      <Card title="Behavior Score" value={safe(summary.behavior_score)} />
     </div>
   );
 }
@@ -42,4 +29,11 @@ function Card({ title, value }) {
       <h2>{value}</h2>
     </div>
   );
+}
+
+// crash-proof number formatter
+function safe(val) {
+  if (val === undefined || val === null) return "0";
+  if (typeof val === "number") return val.toFixed(2);
+  return val;
 }
