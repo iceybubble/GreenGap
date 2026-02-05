@@ -2,20 +2,14 @@ import { useEffect, useState } from "react";
 import { fetchDashboard } from "../services/api";
 import SummaryCards from "../components/SummaryCards";
 import EmissionsChart from "../components/EmissionsChart";
-import Recommendations from "../components/Recommendations";
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetchDashboard()
-      .then((res) => {
-        console.log("API RESPONSE:", res.data); //  debug
-        setData(res.data.dashboard);
-      })
-      .catch((err) => {
-        console.error("API ERROR:", err);
-      });
+    fetchDashboard().then((res) => {
+      setData(res.data.dashboard);
+    });
   }, []);
 
   if (!data) {
@@ -23,17 +17,14 @@ export default function Dashboard() {
   }
 
   return (
-  <div style={{ padding: "20px" }}>
-    <h1> GreenGap Climate Dashboard</h1>
+    <div className="dashboard-container">
+      <h1 className="dashboard-title">GreenGap Climate Dashboard</h1>
 
-    <SummaryCards summary={data.summary_cards} />
+      <SummaryCards summary={data.summary_cards} />
 
-    <EmissionsChart chartData={data.emissions_chart} />
+      <h2 className="section-title">Emissions Analysis</h2>
 
-    <Recommendations data={data} />
-  </div>
-);
-
-
-
+      <EmissionsChart chartData={data.emissions_chart} />
+    </div>
+  );
 }

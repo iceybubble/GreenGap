@@ -27,10 +27,10 @@ export default function EmissionsChart({ chartData }) {
   }));
 
   return (
-    <div style={{ marginTop: "40px" }}>
+    <div className="chart-box">
+
       <h2>Emissions Analysis</h2>
 
-      {/* FIXED WIDTH CHART (NO RESPONSIVECONTAINER) */}
       <LineChart width={900} height={350} data={formatted}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="day" />
