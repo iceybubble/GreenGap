@@ -1,7 +1,9 @@
 import axios from "axios";
 
-const API = axios.create({
+const api = axios.create({
   baseURL: "http://127.0.0.1:8000",
 });
 
-export const fetchDashboard = () => API.get("/analyze");
+export const fetchDashboard = () => {
+  return api.get("/analyze");
+};

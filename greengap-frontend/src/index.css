@@ -1,59 +1,219 @@
 body {
   margin: 0;
   font-family: Inter, system-ui, Arial, sans-serif;
-  background: linear-gradient(180deg, #eef2f7 0%, #f7fafc 100%);
-  color: #1e293b;
+  background: #0b1120;
+  color: #f1f5f9;
 }
 
-/* Main container */
+/* Main Layout */
 .dashboard-container {
-  max-width: 1150px;
+  max-width: 1200px;
   margin: auto;
-  padding: 50px 20px;
+  padding: 50px 30px;
 }
 
-/* Title */
+/* Header */
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+}
+
 .dashboard-title {
-  font-size: 42px;
+  font-size: 44px;
   font-weight: 700;
-  margin-bottom: 35px;
-  letter-spacing: -0.5px;
+  color: #ffffff;
 }
 
-/* Cards layout */
+.subtitle {
+  color: #94a3b8;
+  margin-top: 8px;
+}
+
+/* Sustainability Badge */
+.badge {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  padding: 12px 22px;
+  border-radius: 40px;
+  font-weight: 600;
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
+}
+
+/* Summary Cards */
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  gap: 22px;
+  margin-top: 30px;
 }
 
-/* Card design */
 .card {
-  background: #0f172a;
-  color: white;
-  padding: 28px;
-  border-radius: 16px;
-  box-shadow: 0 12px 25px rgba(0,0,0,0.12);
+  background: #111827;
+  border-radius: 18px;
+  padding: 30px;
   text-align: center;
-  transition: transform 0.2s ease;
+  transition: all 0.3s ease;
+  border: 1px solid #1f2937;
 }
 
 .card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-6px);
+  box-shadow: 0 0 25px rgba(99,102,241,0.4);
 }
 
-/* Section title */
+.card h3 {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.card h2 {
+  font-size: 32px;
+  margin-top: 12px;
+  color: #ffffff;
+}
+
+/* Intelligence Section */
+.intelligence-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+  margin-top: 40px;
+}
+
+.intel-card {
+  padding: 28px;
+  border-radius: 20px;
+  color: white;
+  transition: 0.3s ease;
+}
+
+.rebound {
+  background: linear-gradient(135deg, #f97316, #ef4444);
+}
+
+.loss {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+}
+
+.behavior {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+/* Chart Container */
+.chart-box {
+  margin-top: 50px;
+  background: #111827;
+  border-radius: 22px;
+  padding: 35px;
+  border: 1px solid #1f2937;
+  box-shadow: 0 0 30px rgba(0,0,0,0.6);
+}
+
 .section-title {
-  margin-top: 55px;
-  font-size: 24px;
+  margin-top: 60px;
+  font-size: 26px;
   font-weight: 600;
 }
 
-/* Chart container */
-.chart-box {
-  background: white;
-  border-radius: 16px;
-  padding: 25px;
+.hero-section {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.hero-title {
+  font-size: 52px;
+  font-weight: 800;
+  background: linear-gradient(90deg, #22c55e, #6366f1);
+
+  background-clip: text;              /* standard property */
+  -webkit-background-clip: text;      /* safari support */
+
+  color: transparent;
+}
+
+
+.hero-subtitle {
+  margin-top: 12px;
+  color: #94a3b8;
+  font-size: 18px;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 30px;
+  margin-top: 40px;
+}
+
+.intel-panel {
+  background: #111827;
+  padding: 35px;
+  border-radius: 22px;
+  border: 1px solid #1f2937;
+}
+
+.intel-item {
   margin-top: 15px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  color: #cbd5e1;
+}
+
+.risk-meter {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  padding: 35px;
+  border-radius: 22px;
+  text-align: center;
+  color: white;
+  box-shadow: 0 0 30px rgba(239,68,68,0.4);
+}
+
+.meter-value {
+  font-size: 52px;
+  font-weight: 800;
+  margin-top: 25px;
+}
+
+.meter-label {
+  margin-top: 10px;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.section-title {
+  margin-top: 70px;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 25px;
+  margin: 50px 0;
+}
+
+.summary-card {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 30px;
+  border-radius: 18px;
+  backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-6px);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.recommendation-panel {
+  margin-top: 60px;
+  padding: 40px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.recommendation-panel ul {
+  margin-top: 20px;
+  line-height: 1.8;
 }
