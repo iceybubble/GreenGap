@@ -32,35 +32,37 @@ export default function EmissionsChart({ chartData }) {
       <h2>Emissions Analysis</h2>
 
       <LineChart width={950} height={400} data={formatted}>
-  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-  <XAxis dataKey="day" stroke="#94a3b8" />
-  <YAxis stroke="#94a3b8" />
+  <CartesianGrid strokeDasharray="3 3" stroke="#2a1408" />
+<XAxis stroke="#fbbf24" />
+<YAxis stroke="#fbbf24" />
+
   <Tooltip />
   <Legend />
 
   <Line
-    type="monotone"
-    dataKey="baseline"
-    stroke="#6366f1"
-    strokeWidth={3}
-    dot={false}
-  />
+  type="monotone"
+  dataKey="baseline"
+  stroke="#facc15"   // YELLOW
+  strokeWidth={3}
+  dot={false}
+/>
 
-  <Line
-    type="monotone"
-    dataKey="expected"
-    stroke="#22c55e"
-    strokeWidth={3}
-    dot={false}
-  />
+<Line
+  type="monotone"
+  dataKey="expected"
+  stroke="#38bdf8"   // SKY BLUE
+  strokeWidth={3}
+  dot={false}
+/>
 
-  <Line
-    type="monotone"
-    dataKey="actual"
-    stroke="#ef4444"
-    strokeWidth={3}
-    dot={false}
-  />
+<Line
+  type="monotone"
+  dataKey="actual"
+  stroke="#ef4444"   // RED
+  strokeWidth={3}
+  dot={false}
+/>
+
 </LineChart>
 
 
