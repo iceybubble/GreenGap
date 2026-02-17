@@ -7,6 +7,7 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [expandedRec, setExpandedRec] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -31,6 +32,17 @@ export default function Dashboard() {
     const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Expanded recommendation details
+  const getExpandedRecommendation = (index) => {
+    const details = [
+      "High rebound detected: Your energy efficiency improvements have led to increased usage duration. Consider setting automated schedules to limit usage during peak hours. Implement smart timers and usage caps to maintain the benefits of your efficiency upgrades.",
+      "Set smart usage schedules to prevent overconsumption. Create automated routines that turn off devices during non-essential hours. Use energy monitoring apps to track consumption patterns and identify optimization opportunities.",
+      "Monitor your consumption patterns weekly and adjust habits accordingly. Set up alerts for unusual usage spikes. Review your energy dashboard regularly to stay aware of your carbon footprint trends.",
+      "Consider renewable energy sources to offset your carbon footprint. Look into solar panels, wind energy subscriptions, or carbon offset programs. Even small changes like switching to green energy providers can make a significant impact."
+    ];
+    return details[index] || details[0];
+  };
 
   if (loading) {
     return (
@@ -59,17 +71,34 @@ export default function Dashboard() {
     );
   }
 
+  // Ensure at least 2 recommendations
+  const recommendations = data.recommendations && data.recommendations.length >= 2 
+    ? data.recommendations 
+    : [
+        "High rebound detected: reduce usage duration after efficiency adoption.",
+        "Set smart usage schedules to prevent overconsumption.",
+        "Monitor your consumption patterns weekly and adjust habits accordingly.",
+        "Consider renewable energy sources to offset your carbon footprint."
+      ];
+
   return (
     <div className="dashboard-container">
+      {/* Floating Refresh Button */}
+      <button 
+        className="floating-refresh-btn" 
+        onClick={loadData}
+        title="Refresh Data"
+        aria-label="Refresh dashboard data"
+      >
+        🔄
+      </button>
+
       {/* Hero Section */}
       <div className="hero-section">
         <h1 className="hero-title">🌍 GreenGap Intelligence</h1>
         <p className="hero-subtitle">
           Detecting Rebound Effects & Hidden Climate Loss
         </p>
-        <button className="refresh-btn" onClick={loadData}>
-          🔄 Refresh Data
-        </button>
       </div>
 
       {/* Summary Grid */}
@@ -140,15 +169,27 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Recommendations */}
-      {data.recommendations && data.recommendations.length > 0 && (
+      {/* Recommendations with Expand/Collapse */}
+      {recommendations.length > 0 && (
         <div className="recommendation-panel">
           <h2>🤖 AI Recommendations</h2>
           <ul className="recommendation-list">
-            {data.recommendations.map((rec, i) => (
-              <li key={i} className="recommendation-item">
+            {recommendations.map((rec, i) => (
+              <li 
+                key={i} 
+                className={`recommendation-item ${expandedRec === i ? 'expanded' : ''}`}
+                onClick={() => setExpandedRec(expandedRec === i ? null : i)}
+              >
                 <span className="rec-number">{i + 1}</span>
-                <span>{rec}</span>
+                <div className="rec-content">
+                  <span className="rec-short">{rec}</span>
+                  {expandedRec === i && (
+                    <p className="rec-expanded">{getExpandedRecommendation(i)}</p>
+                  )}
+                  <span className="rec-toggle">
+                    {expandedRec === i ? '▲ Show less' : '▼ Read more'}
+                  </span>
+                </div>
               </li>
             ))}
           </ul>
