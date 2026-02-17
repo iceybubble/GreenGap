@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
@@ -18,10 +19,12 @@ function App() {
         {/* Navigation Bar */}
         <nav className="navbar">
           <div className="nav-brand">
-            <h2>🌱 GreenGap</h2>
+            <Link to="/" style={{ textDecoration: 'none' }}>
+              <h2>🌱 GreenGap</h2>
+            </Link>
           </div>
           <div className="nav-links">
-            <Link to="/" className="nav-link">Dashboard</Link>
+            <Link to="/dashboard" className="nav-link">Dashboard</Link>
             <Link to="/analytics" className="nav-link">Analytics</Link>
             <Link to="/settings" className="nav-link">Settings</Link>
             <Link to="/contact" className="nav-link">Contact</Link>
@@ -39,7 +42,8 @@ function App() {
 
         {/* Routes */}
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/contact" element={<Contact />} />
