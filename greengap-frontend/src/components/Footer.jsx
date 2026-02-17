@@ -8,6 +8,9 @@ export default function Footer() {
         <div className="footer-section">
           <h3>🌱 GreenGap</h3>
           <p>Detecting rebound effects and hidden climate loss with AI-powered analytics.</p>
+          <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
+            📍 Gola Market, Srinagar Garhwal, India
+          </p>
         </div>
 
         <div className="footer-section">
@@ -20,16 +23,20 @@ export default function Footer() {
 
         <div className="footer-section">
           <h4>Resources</h4>
-          <a href="https://github.com/iceybubble/greengap" target="_blank" rel="noopener noreferrer">GitHub</a>
-          <a href="#">Documentation</a>
-          <a href="#">API Reference</a>
+          <Link to="/docs">Documentation</Link>
+          <Link to="/api">API Reference</Link>
+          <a href="https://github.com/iceybubble/greengap" target="_blank" rel="noopener noreferrer">GitHub Repository</a>
         </div>
 
         <div className="footer-section">
           <h4>Connect</h4>
-          <a href="mailto:contact@greengap.com">Email Us</a>
-          <a href="#">Twitter</a>
-          <a href="#">LinkedIn</a>
+          <a href="mailto:contact@greengap.com"> Email Us</a>
+          <a href="https://x.com/maybe_priyanshi" target="_blank" rel="noopener noreferrer">
+            X
+          </a>
+          <a href="https://www.linkedin.com/in/pallavikathait/" target="_blank" rel="noopener noreferrer">
+            LinkedIn
+          </a>
         </div>
       </div>
 
