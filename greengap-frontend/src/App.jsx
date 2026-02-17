@@ -3,8 +3,6 @@ import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import "./App.css";
-import Home from "./pages/Home";
-
 
 function App() {
   return (
@@ -27,8 +25,6 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/" element={<Home />} />
-          <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
       </div>
     </Router>

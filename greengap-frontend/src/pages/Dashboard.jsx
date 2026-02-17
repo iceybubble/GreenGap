@@ -28,7 +28,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadData();
-    // Auto-refresh every 30 seconds
     const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -106,9 +105,7 @@ export default function Dashboard() {
       <div className="intelligence-grid">
         <div className="intel-card">
           <h3>🎯 Rebound Level</h3>
-          <h2
-            className={`rebound-level ${data.rebound_level?.toLowerCase()}`}
-          >
+          <h2 className={`rebound-level ${data.rebound_level?.toLowerCase()}`}>
             {data.rebound_level || "N/A"}
           </h2>
           <div className="progress-bar">
