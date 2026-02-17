@@ -23,7 +23,6 @@
 - [ Architecture](#️-architecture)
 - [ Key Innovation](#-key-innovation)
 - [ Contributing](#-contributing)
-- [ Team](#-team)
 - [ Contact](#-contact)
 - [ License](#-license)
 
@@ -505,33 +504,6 @@ refactor: Code refactoring
 test: Add tests
 chore: Maintenance tasks
 ```
-
----
-
-##  Team
-
-### Core Contributors
-
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://www.linkedin.com/in/pallavikathait/">
-        <img src="https://github.com/iceybubble.png" width="100px;" alt="Pallavi Kathait"/><br />
-        <sub><b>Pallavi Kathait</b></sub>
-      </a><br />
-      <sub>Full-Stack Developer</sub><br />
-      <a href="https://www.linkedin.com/in/pallavikathait/">💼 LinkedIn</a>
-    </td>
-    <td align="center">
-      <a href="https://x.com/maybe_priyanshi">
-        <img src="https://via.placeholder.com/100" width="100px;" alt="Priyanshi"/><br />
-        <sub><b>Priyanshi</b></sub>
-      </a><br />
-      <sub>AI/ML Engineer</sub><br />
-      <a href="https://x.com/maybe_priyanshi">𝕏 Twitter/X</a>
-    </td>
-  </tr>
-</table>
 
 ---
 
