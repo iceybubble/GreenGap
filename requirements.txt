@@ -3,3 +3,7 @@ uvicorn[standard]
 numpy
 pandas
 python-dotenv
+pathway==0.13.0
+pathway[xpack-llm]
+sentence-transformers==3.0.1
+openai==1.12.0

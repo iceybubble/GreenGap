@@ -8,14 +8,14 @@ export default function Home() {
       <section className="hero-landing">
         <div className="hero-content">
           <div className="hero-badge">
-            <span className="badge-text">🌍 AI-Powered Sustainability</span>
+            <span className="badge-text"> AI-Powered Sustainability</span>
           </div>
           <h1 className="hero-title">
             Stop Hidden Climate Loss with{" "}
             <span className="gradient-text">GreenGap Intelligence</span>
           </h1>
           <p className="hero-description">
-            The world's first AI platform to detect and prevent the rebound effect—
+            The AI platform to detect and prevent the rebound effect—
             where energy efficiency improvements lead to increased consumption, 
             secretly undermining your climate goals.
           </p>
@@ -35,10 +35,10 @@ export default function Home() {
           </div>
           <div className="hero-cta">
             <Link to="/dashboard" className="btn-primary">
-              🚀 Launch Dashboard
+               Launch Dashboard
             </Link>
             <Link to="/docs" className="btn-secondary">
-              📚 View Documentation
+               View Documentation
             </Link>
           </div>
         </div>
@@ -69,7 +69,7 @@ export default function Home() {
 
       {/* Problem Statement */}
       <section className="problem-section">
-        <h2>🔥 The Hidden Problem</h2>
+        <h2> The Hidden Problem</h2>
         <div className="problem-grid">
           <div className="problem-card">
             <div className="problem-icon">⚡</div>
@@ -103,7 +103,7 @@ export default function Home() {
 
       {/* Features Grid */}
       <section className="features-section">
-        <h2>✨ Powerful Features</h2>
+        <h2> Powerful Features</h2>
         <div className="features-grid">
           <div className="feature-card">
             <div className="feature-icon">🤖</div>
@@ -145,7 +145,7 @@ export default function Home() {
 
       {/* How It Works */}
       <section className="how-it-works">
-        <h2>🔧 How It Works</h2>
+        <h2> How It Works</h2>
         <div className="steps-container">
           <div className="step">
             <div className="step-number">1</div>
@@ -175,22 +175,22 @@ export default function Home() {
 
       {/* Use Cases */}
       <section className="use-cases">
-        <h2>🏢 Perfect For</h2>
+        <h2> Perfect For</h2>
         <div className="use-case-grid">
           <div className="use-case-card">
-            <h3>🏭 Enterprises</h3>
+            <h3> Enterprises</h3>
             <p>Track rebound effects across multiple facilities and departments</p>
           </div>
           <div className="use-case-card">
-            <h3>🏫 Universities</h3>
+            <h3> Universities</h3>
             <p>Monitor campus sustainability and educate about behavioral impacts</p>
           </div>
           <div className="use-case-card">
-            <h3>🏨 Hospitality</h3>
+            <h3> Hospitality</h3>
             <p>Ensure green initiatives deliver promised environmental benefits</p>
           </div>
           <div className="use-case-card">
-            <h3>🏙️ Smart Cities</h3>
+            <h3> Smart Cities</h3>
             <p>Analyze city-wide energy programs and prevent policy backfire</p>
           </div>
         </div>
@@ -198,7 +198,7 @@ export default function Home() {
 
       {/* Impact Stats */}
       <section className="impact-section">
-        <h2>🌟 Our Impact</h2>
+        <h2> Our Impact</h2>
         <div className="impact-grid">
           <div className="impact-stat">
             <h3>14.9 kg</h3>
@@ -225,10 +225,10 @@ export default function Home() {
         <p>Join the fight against hidden climate loss. Start detecting rebound effects today.</p>
         <div className="cta-buttons">
           <Link to="/dashboard" className="btn-primary-large">
-            🚀 Get Started Free
+             Get Started Free
           </Link>
           <Link to="/contact" className="btn-secondary-large">
-            📧 Contact Sales
+             Contact Sales
           </Link>
         </div>
       </section>
