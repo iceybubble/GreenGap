@@ -1,221 +1,301 @@
-import { useEffect, useState } from "react";
-import { fetchDashboard } from "../services/api";
-import EmissionsChart from "../components/EmissionsChart";
-import AIChat from "../components/AIChat";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { Line } from "react-chartjs-2";
 import "./Dashboard.css";
+import AIChat from "../components/AIChat";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [expandedRec, setExpandedRec] = useState(null);
+  const [language, setLanguage] = useState('en');
 
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchData = async () => {
     try {
-      const res = await fetchDashboard();
-      if (res?.data?.dashboard) {
-        setData(res.data.dashboard);
-      } else {
-        setData(res.data);
-      }
-    } catch (err) {
-      console.error("API ERROR:", err);
-      setError(err.message || "Failed to load data");
-    } finally {
+      const response = await axios.get("http://127.0.0.1:8000/analyze");
+      setData(response.data.dashboard);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching data:", error);
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 120000); // 2 minutes (120 seconds)
+    fetchData();
+    const interval = setInterval(fetchData, 120000); // Auto-refresh every 2 minutes
     return () => clearInterval(interval);
   }, []);
 
-  // Expanded recommendation details
-  const getExpandedRecommendation = (index) => {
-    const details = [
-      "High rebound detected: Your energy efficiency improvements have led to increased usage duration. Consider setting automated schedules to limit usage during peak hours. Implement smart timers and usage caps to maintain the benefits of your efficiency upgrades.",
-      "Set smart usage schedules to prevent overconsumption. Create automated routines that turn off devices during non-essential hours. Use energy monitoring apps to track consumption patterns and identify optimization opportunities.",
-      "Monitor your consumption patterns weekly and adjust habits accordingly. Set up alerts for unusual usage spikes. Review your energy dashboard regularly to stay aware of your carbon footprint trends.",
-      "Consider renewable energy sources to offset your carbon footprint. Look into solar panels, wind energy subscriptions, or carbon offset programs. Even small changes like switching to green energy providers can make a significant impact."
-    ];
-    return details[index] || details[0];
+  const exportToPDF = async () => {
+    if (!data) {
+      alert('No data available to export. Please wait for dashboard to load.');
+      return;
+    }
+    
+    try {
+      const response = await fetch('http://127.0.0.1:8000/export-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ dashboard: data })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `GreenGap_Report_${new Date().toISOString().slice(0,10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      console.log(' PDF exported successfully!');
+    } catch (error) {
+      console.error(' Export failed:', error);
+      alert('Failed to export report. Please try again.');
+    }
   };
 
   if (loading) {
     return (
-      <div className="loading-container">
+      <div className="dashboard-loading">
         <div className="loading-spinner"></div>
-        <h2 style={{ marginTop: "1rem" }}>Loading GreenGap Intelligence...</h2>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="error-container">
-        <h2>⚠️ Error Loading Data</h2>
-        <p>{error}</p>
-        <button onClick={loadData}>Retry</button>
+        <p>Loading GreenGap Intelligence...</p>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="loading-container">
-        <h2>No data available</h2>
+      <div className="dashboard-error">
+        <p> Failed to load dashboard data</p>
+        <button onClick={fetchData}>Retry</button>
       </div>
     );
   }
 
-  // Ensure at least 2 recommendations
-  const recommendations = data.recommendations && data.recommendations.length >= 2 
-    ? data.recommendations 
-    : [
-        "High rebound detected: reduce usage duration after efficiency adoption.",
-        "Set smart usage schedules to prevent overconsumption.",
-        "Monitor your consumption patterns weekly and adjust habits accordingly.",
-        "Consider renewable energy sources to offset your carbon footprint."
-      ];
+  const chartData = {
+    labels: data.emissions_chart.labels,
+    datasets: [
+      {
+        label: "Baseline Emissions",
+        data: data.emissions_chart.baseline,
+        borderColor: "rgb(239, 68, 68)",
+        backgroundColor: "rgba(239, 68, 68, 0.1)",
+        tension: 0.4,
+      },
+      {
+        label: "Expected (Post-Efficiency)",
+        data: data.emissions_chart.expected,
+        borderColor: "rgb(59, 130, 246)",
+        backgroundColor: "rgba(59, 130, 246, 0.1)",
+        tension: 0.4,
+      },
+      {
+        label: "Actual Emissions",
+        data: data.emissions_chart.actual,
+        borderColor: "rgb(34, 197, 94)",
+        backgroundColor: "rgba(34, 197, 94, 0.1)",
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: "top" },
+      title: { display: true, text: "Weekly Emissions Tracking" },
+    },
+    scales: {
+      y: {
+        beginAtZero: false,
+        title: { display: true, text: "CO₂ Emissions (kg)" },
+      },
+    },
+  };
 
   return (
     <div className="dashboard-container">
+      {/* Hero Section */}
+      <div className="hero-section">
+        <div className="hero-header">
+          <div>
+            <h1 className="hero-title"> GreenGap Intelligence</h1>
+            <p className="hero-subtitle">
+              Detecting Rebound Effects & Hidden Climate Loss
+            </p>
+          </div>
+          
+          {/* Language Selector */}
+          <select 
+            className="language-selector"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            aria-label="Select language"
+          >
+            <option value="en">🇺🇸 English</option>
+            <option value="es">🇪🇸 Español</option>
+            <option value="fr">🇫🇷 Français</option>
+            <option value="de">🇩🇪 Deutsch</option>
+            <option value="zh">🇨🇳 中文</option>
+            <option value="hi">🇮🇳 हिंदी</option>
+            <option value="ar">🇸🇦 العربية</option>
+            <option value="pt">🇧🇷 Português</option>
+          </select>
+        </div>
+
+        {/* AI Badge */}
+        <div className="ai-badge-container">
+          <div className="ai-badge">
+            <span className="robot-icon">🤖</span>
+            <span className="badge-text">Powered by Pathway AI</span>
+            <span className="rag-badge">RAG</span>
+          </div>
+          <div className="engine-badge">
+            {data.ai_engine || "Pathway RAG + Gemini"}
+          </div>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="summary-cards">
+        <div className="card">
+          <h3>Sustainability Index</h3>
+          <p className="card-value">{data.summary_cards.sustainability_index}</p>
+          <span className="card-unit">/ 100</span>
+        </div>
+        <div className="card">
+          <h3>CO₂ Saved</h3>
+          <p className="card-value">{data.summary_cards.co2_saved}</p>
+          <span className="card-unit">kg</span>
+        </div>
+        <div className="card">
+          <h3>Efficiency Score</h3>
+          <p className="card-value">{data.summary_cards.efficiency_score}</p>
+          <span className="card-unit">%</span>
+        </div>
+        <div className="card">
+          <h3>Behavior Score</h3>
+          <p className="card-value">{data.summary_cards.behavior_score}</p>
+          <span className="card-unit">%</span>
+        </div>
+      </div>
+
+      {/* Rebound Effect Alert */}
+      <div className={`rebound-alert rebound-${data.rebound_level.toLowerCase()}`}>
+        <div className="alert-header">
+          <h2> Rebound Effect Detected</h2>
+          <span className={`rebound-badge ${data.rebound_level.toLowerCase()}`}>
+            {data.rebound_level}
+          </span>
+        </div>
+        <p className="alert-message">
+          Despite efficiency improvements, actual consumption increased by{" "}
+          <strong>{data.rebound_percentage}%</strong>. Your real savings are lower than
+          expected.
+        </p>
+        <div className="alert-details">
+          <div className="detail-item">
+            <span className="detail-label">Expected Savings:</span>
+            <span className="detail-value">{data.summary_cards.co2_saved} kg CO₂</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-label">Corrected Projection:</span>
+            <span className="detail-value corrected">
+              {data.corrected_projection} kg CO₂
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Section */}
+      <div className="charts-section">
+        <div className="chart-card">
+          <h2> Emissions Over Time</h2>
+          <div className="chart-container">
+            <Line data={chartData} options={chartOptions} />
+          </div>
+        </div>
+
+        <div className="insights-card">
+          <h2> Behavior Insights</h2>
+          <p className="insight-text">{data.behavior_insights.behavior_reason}</p>
+          <div className="insight-metrics">
+            <div className="metric">
+              <span className="metric-label">Analysis ID</span>
+              <span className="metric-value">#{data.analysis_id}</span>
+            </div>
+            <div className="metric">
+              <span className="metric-label">Knowledge Docs</span>
+              <span className="metric-value">{data.knowledge_docs_used}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recommendations */}
+      <div className="recommendations-section">
+        <h2> Pathway AI Recommendations</h2>
+        <ul className="recommendations-list">
+          {data.recommendations.map((rec, index) => (
+            <li key={index} className="recommendation-item">
+              <span className="rec-number">{index + 1}</span>
+              <span className="rec-text">{rec}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
       {/* Floating Refresh Button */}
       <button 
         className="floating-refresh-btn" 
-        onClick={loadData}
-        title="Refresh Data"
+        onClick={fetchData}
+        title="Refresh Dashboard"
         aria-label="Refresh dashboard data"
       >
         🔄
       </button>
 
-      {/* Hero Section */}
-      <div className="hero-section">
-        <h1 className="hero-title">🌍 GreenGap Intelligence</h1>
-        <p className="hero-subtitle">
-          Detecting Rebound Effects & Hidden Climate Loss
-        </p>
-      </div>
+      {/* Floating Export Button */}
+      <button 
+        className="floating-export-btn" 
+        onClick={exportToPDF}
+        title="Export PDF Report"
+        aria-label="Export sustainability report as PDF"
+      >
+        📄
+      </button>
 
-      {/* Summary Grid */}
-      {data.summary_cards && (
-        <div className="summary-grid">
-          <div className="summary-card sustainability">
-            <div className="card-icon">📊</div>
-            <h3>Sustainability Index</h3>
-            <h2>{Number(data.summary_cards.sustainability_index || 0).toFixed(1)}</h2>
-          </div>
-
-          <div className="summary-card co2">
-            <div className="card-icon">🌱</div>
-            <h3>CO₂ Saved</h3>
-            <h2>{Number(data.summary_cards.co2_saved || 0).toFixed(2)} kg</h2>
-          </div>
-
-          <div className="summary-card efficiency">
-            <div className="card-icon">⚡</div>
-            <h3>Efficiency Score</h3>
-            <h2>{Number(data.summary_cards.efficiency_score || 0).toFixed(1)}%</h2>
-          </div>
-
-          <div className="summary-card behavior">
-            <div className="card-icon">👤</div>
-            <h3>Behavior Score</h3>
-            <h2>{Number(data.summary_cards.behavior_score || 0).toFixed(1)}%</h2>
-          </div>
-        </div>
-      )}
-
-      {/* Intelligence Section */}
-      <div className="intelligence-grid">
-        <div className="intel-card">
-          <h3>🎯 Rebound Level</h3>
-          <h2 className={`rebound-level ${data.rebound_level?.toLowerCase()}`}>
-            {data.rebound_level || "N/A"}
-          </h2>
-          <div className="progress-bar">
-            <div
-              className="progress-fill"
-              style={{
-                width: data.rebound_level === "HIGH" ? "90%" : 
-                       data.rebound_level === "MEDIUM" ? "50%" : "20%"
-              }}
-            ></div>
-          </div>
-        </div>
-
-        <div className="intel-card">
-          <h3>💡 Usage Insight</h3>
-          <p className="insight-text">
-            {data.behavior_insights?.behavior_reason || "No data available"}
-          </p>
-        </div>
-
-        <div className="intel-card">
-          <h3>📈 Corrected Projection</h3>
-          <h2>{Number(data.corrected_projection || 0).toFixed(2)} kg CO₂</h2>
-        </div>
-      </div>
-
-      {/* 🔥 AI POWERED BADGE - NEW! */}
-      {/* AI Powered Badge */}
-{data?.rag_enabled && (
-  <div className="ai-badge-container">
-    <div className="ai-badge">
-      
-      <span className="ai-text">Powered by Pathway AI</span>
-      <span className="rag-badge">RAG</span>
-    </div>
-  </div>
-)}
-
-      {/* Chart */}
-      {data.emissions_chart && (
-        <div className="chart-section">
-          <h2 className="section-title">📊 Emission Performance Timeline</h2>
-          <EmissionsChart chartData={data.emissions_chart} />
-        </div>
-      )}
-
-      {/* Recommendations with Expand/Collapse */}
-      {recommendations.length > 0 && (
-        <div className="recommendation-panel">
-          <h2>
-            🤖 Pathway AI Recommendations
-            {data?.ai_engine && (
-              <span className="engine-badge">{data.ai_engine}</span>
-            )}
-          </h2>
-          <ul className="recommendation-list">
-            {recommendations.map((rec, i) => (
-              <li 
-                key={i} 
-                className={`recommendation-item ${expandedRec === i ? 'expanded' : ''}`}
-                onClick={() => setExpandedRec(expandedRec === i ? null : i)}
-              >
-                <span className="rec-number">{i + 1}</span>
-                <div className="rec-content">
-                  <span className="rec-short">{rec}</span>
-                  {expandedRec === i && (
-                    <p className="rec-expanded">{getExpandedRecommendation(i)}</p>
-                  )}
-                  <span className="rec-toggle">
-                    {expandedRec === i ? '▲ Show less' : '▼ Read more'}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* AI CHAT ASSISTANT - NEW! */}
-      <AIChat />
+      {/* AI CHAT ASSISTANT */}
+      <AIChat language={language} />
     </div>
   );
 }
