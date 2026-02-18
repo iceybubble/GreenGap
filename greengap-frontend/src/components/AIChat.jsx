@@ -33,16 +33,30 @@ export default function AIChat({ language = 'en', apiUrl }) {
     }
   }, [isOpen, language]);
 
+  // Cleanup speech recognition on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+          recognitionRef.current = null;
+        } catch (e) {
+          console.error('Cleanup error:', e);
+        }
+      }
+    };
+  }, []);
+
   const getWelcomeMessage = (lang) => {
     const welcomes = {
-      en: " Hi! I'm your AI sustainability assistant powered by Google Gemini and Pathway RAG. Ask me anything about reducing your carbon footprint, preventing rebound effects, or improving energy efficiency!",
-      es: " ¡Hola! Soy tu asistente de sostenibilidad impulsado por IA. ¡Pregúntame cualquier cosa sobre reducir tu huella de carbono!",
-      fr: " Bonjour! Je suis votre assistant de durabilité alimenté par l'IA. Posez-moi des questions sur la réduction de votre empreinte carbone!",
-      de: " Hallo! Ich bin Ihr KI-gestützter Nachhaltigkeitsassistent. Fragen Sie mich alles über die Reduzierung Ihres CO₂-Fußabdrucks!",
-      zh: " 你好！我是您的人工智能可持续发展助手。询问我有关减少碳足迹的任何问题！",
-      hi: " नमस्���े! मैं आपका AI स्थिरता सहायक हूं। मुझसे कार्बन फुटप्रिंट कम करने के बारे में कुछ भी पूछें!",
-      ar: " مرحبا! أنا مساعد الاستدامة الخاص بك المدعوم بالذكاء الاصطناعي. اسألني أي شيء عن تقليل بصمتك الكربونية!",
-      pt: " Olá! Sou seu assistente de sustentabilidade alimentado por IA. Pergunte-me qualquer coisa sobre reduzir sua pegada de carbono!",
+      en: "👋 Hi! I'm your AI sustainability assistant powered by Google Gemini and Pathway RAG. Ask me anything about reducing your carbon footprint, preventing rebound effects, or improving energy efficiency!",
+      es: "👋 ¡Hola! Soy tu asistente de sostenibilidad impulsado por IA. ¡Pregúntame cualquier cosa sobre reducir tu huella de carbono!",
+      fr: "👋 Bonjour! Je suis votre assistant de durabilité alimenté par l'IA. Posez-moi des questions sur la réduction de votre empreinte carbone!",
+      de: "👋 Hallo! Ich bin Ihr KI-gestützter Nachhaltigkeitsassistent. Fragen Sie mich alles über die Reduzierung Ihres CO₂-Fußabdrucks!",
+      zh: "👋 你好！我是您的人工智能可持续发展助手。询问我有关减少碳足迹的��何问题！",
+      hi: "👋 नमस्ते! मैं आपका AI स्थिरता सहायक हूं। मुझसे कार्बन फुटप्रिंट कम करने के बारे में कुछ भी पूछें!",
+      ar: "👋 مرحبا! أنا مساعد الاستدامة الخاص بك المدعوم بالذكاء الاصطناعي. اسألني أي شيء عن تقليل بصمتك الكربونية!",
+      pt: "👋 Olá! Sou seu assistente de sustentabilidade alimentado por IA. Pergunte-me qualquer coisa sobre reduzir sua pegada de carbono!",
     };
     return welcomes[lang] || welcomes.en;
   };
@@ -57,25 +71,63 @@ export default function AIChat({ language = 'en', apiUrl }) {
     setIsTyping(true);
 
     try {
-      const response = await axios.post(`${API_URL}/chat`, {
-        message: textToSend,
-        language: language,
-      });
+      console.log('Sending message to:', `${API_URL}/chat`);
+      console.log('Message:', textToSend);
+      console.log('Language:', language);
+      
+      const response = await axios.post(
+        `${API_URL}/chat`,
+        {
+          message: textToSend,
+          language: language,
+        },
+        {
+          timeout: 60000, // 60 second timeout
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-      const assistantMessage = {
-        role: "assistant",
-        content: response.data.response,
-      };
+      console.log('Response received:', response.data);
+
+      // Handle backend response format (answer field)
+const aiResponse = response.data.answer || response.data.response || response.data.text || "I received your message but couldn't generate a response.";
+
+const assistantMessage = {
+  role: "assistant",
+  content: aiResponse,
+};
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error("Error sending message:", error);
+      console.error("Error details:", {
+        message: error.message,
+        code: error.code,
+        response: error.response,
+      });
+      
+      let errorMsg = " Sorry, I encountered an error. ";
+      
+      if (error.code === 'ECONNABORTED') {
+        errorMsg += "Request timed out. The backend might be sleeping (Render free tier). Please wait 30 seconds and try again.";
+      } else if (error.response?.status === 504) {
+        errorMsg += "The server is waking up from sleep. Please wait 30-60 seconds and try again.";
+      } else if (error.response?.status === 500) {
+        errorMsg += "Backend server error. The AI service might be initializing.";
+      } else if (error.response?.status === 502 || error.response?.status === 503) {
+        errorMsg += "Backend is temporarily unavailable. It's likely waking up from sleep. Please try again in 1 minute.";
+      } else if (error.message === 'Network Error') {
+        errorMsg += "Cannot connect to backend. Please check if the backend is running at: " + API_URL;
+      } else if (error.response?.data?.detail) {
+        errorMsg += error.response.data.detail;
+      } else {
+        errorMsg += "Please try again in a moment.";
+      }
+      
       const errorMessage = {
         role: "assistant",
-        content: ` Sorry, I encountered an error connecting to the backend. ${
-          error.response?.status === 504 ? 
-          "The server might be waking up (free tier sleep). Please try again in 30 seconds." : 
-          "Please try again."
-        }`,
+        content: errorMsg,
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -84,10 +136,43 @@ export default function AIChat({ language = 'en', apiUrl }) {
   };
 
   const startVoiceRecognition = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Voice recognition is not supported in your browser. Please use Chrome or Edge.');
-      return;
+  // Check browser support
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('Voice recognition is not supported in your browser. Please use Chrome or Edge.');
+    return;
+  }
+
+  // If already listening, stop the current recognition
+  if (isListening && recognitionRef.current) {
+    try {
+      recognitionRef.current.abort();
+      setIsListening(false);
+      recognitionRef.current = null;
+    } catch (e) {
+      console.warn('Error aborting recognition:', e);
     }
+    return;
+  }
+
+  // Stop any existing recognition before starting new one
+  if (recognitionRef.current) {
+    try {
+      recognitionRef.current.abort();
+      recognitionRef.current = null;
+    } catch (e) {
+      // Ignore abort errors
+    }
+    // Wait a bit before starting new recognition
+    setTimeout(() => {
+      startNewRecognition();
+    }, 100);
+    return;
+  }
+
+  startNewRecognition();
+};
+
+const startNewRecognition = () => {
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
@@ -106,31 +191,51 @@ export default function AIChat({ language = 'en', apiUrl }) {
     recognition.lang = languageCodes[language] || 'en-US';
     recognition.continuous = false;
     recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
+      console.log('Speech recognition started');
       setIsListening(true);
     };
 
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
+      console.log('Transcript:', transcript);
       setInputValue(transcript);
-      setIsListening(false);
     };
 
     recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
       setIsListening(false);
+      
       if (event.error === 'no-speech') {
-        alert('No speech detected. Please try again.');
+        // Don't alert, just log
+        console.warn('No speech detected');
+      } else if (event.error === 'network') {
+        // Network errors during speech recognition are not critical
+        console.warn('Network error during speech recognition - this is usually harmless');
+      } else if (event.error === 'not-allowed') {
+        alert('Microphone permission denied. Please allow microphone access in your browser settings.');
+      } else if (event.error !== 'aborted') {
+        console.warn(`Speech recognition error: ${event.error}`);
       }
     };
 
     recognition.onend = () => {
+      console.log('Speech recognition ended');
       setIsListening(false);
+      recognitionRef.current = null;
     };
 
-    recognitionRef.current = recognition;
-    recognition.start();
+    try {
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (error) {
+      console.error('Failed to start recognition:', error);
+      setIsListening(false);
+      recognitionRef.current = null;
+      alert('Failed to start voice recognition. Please try again.');
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -148,7 +253,19 @@ export default function AIChat({ language = 'en', apiUrl }) {
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Toggle AI chat assistant"
       >
-        {isOpen ? "✖" : "🤖"}
+        {isOpen ? (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        ) : (
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+            <circle cx="8" cy="10" r="1.5"/>
+            <circle cx="12" cy="10" r="1.5"/>
+            <circle cx="16" cy="10" r="1.5"/>
+          </svg>
+        )}
       </button>
 
       {/* Chat Window */}
@@ -164,8 +281,15 @@ export default function AIChat({ language = 'en', apiUrl }) {
                 </p>
               </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="close-chat-btn">
-              ✖
+            <button 
+              onClick={() => setIsOpen(false)} 
+              className="close-chat-btn"
+              aria-label="Close chat"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
             </button>
           </div>
 
@@ -201,7 +325,17 @@ export default function AIChat({ language = 'en', apiUrl }) {
               title={`Voice input (${language.toUpperCase()})`}
               aria-label="Start voice input"
             >
-              🎤
+              {isListening ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="4" width="4" height="16" rx="1"/>
+                  <rect x="14" y="4" width="4" height="16" rx="1"/>
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                  <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+              )}
             </button>
             <input
               type="text"
@@ -217,7 +351,9 @@ export default function AIChat({ language = 'en', apiUrl }) {
               disabled={!inputValue.trim() || isTyping}
               aria-label="Send message"
             >
-              📤
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+              </svg>
             </button>
           </div>
         </div>
