@@ -41,6 +41,7 @@ openai==2.21.0
 packaging==26.0
 pandas==3.0.0
 pathway==0.post1
+pillow==12.1.1
 proto-plus==1.27.1
 protobuf==5.29.6
 pyasn1==0.6.2
@@ -52,8 +53,10 @@ Pygments==2.19.2
 pyparsing==3.3.2
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.1
+python-multipart==0.0.22
 PyYAML==6.0.3
 regex==2026.1.15
+reportlab==4.4.10
 requests==2.32.5
 rich==14.3.2
 safetensors==0.7.0

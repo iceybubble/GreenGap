@@ -5,6 +5,13 @@ from datetime import datetime
 from app.pathway_pipeline import rag_system
 import os
 from dotenv import load_dotenv
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.units import inch
+from io import BytesIO
+from fastapi.responses import StreamingResponse
 
 # Load environment variables
 load_dotenv()
@@ -58,7 +65,7 @@ def read_root():
         "ai_powered": True,
         "gemini_active": gemini_client is not None,
         "tech_stack": ["FastAPI", "Pathway", "RAG", "Google Gemini"],
-        "features": ["Real-time analytics", "AI recommendations", "Rebound detection", "Conversational AI"]
+        "features": ["Real-time analytics", "AI recommendations", "Rebound detection", "Conversational AI", "PDF Export", "Multi-Language"]
     }
 
 @app.get("/analyze")
@@ -168,10 +175,26 @@ def health_check():
 async def chat_with_ai(question: dict):
     """
     Intelligent chat using Pathway knowledge base + Google Gemini (NEW API)
+    Supports multi-language responses
     Falls back to pre-written responses if Gemini unavailable
     """
     user_question = question.get("message", "")
+    user_language = question.get("language", "en")
     user_question_lower = user_question.lower()
+    
+    # Language names for Gemini
+    language_map = {
+        'en': 'English',
+        'es': 'Spanish',
+        'fr': 'French',
+        'de': 'German',
+        'zh': 'Chinese',
+        'hi': 'Hindi',
+        'ar': 'Arabic',
+        'pt': 'Portuguese'
+    }
+    
+    target_language = language_map.get(user_language, 'English')
     
     # Pre-defined responses (fallback)
     fallback_responses = {
@@ -265,7 +288,7 @@ Use GreenGap to monitor your CO₂ reduction over time.""",
                     matched_keyword = keyword
                     break
             
-            # Build prompt
+            # Build prompt with language instruction
             if context_docs:
                 prompt = f"""You are GreenGap's sustainability AI assistant powered by Pathway RAG and Google Gemini.
 
@@ -274,6 +297,8 @@ Using this knowledge from our Pathway database about {matched_keyword}:
 {context_docs[0]}
 
 User's question: {user_question}
+
+IMPORTANT: Respond in {target_language} language.
 
 Provide a comprehensive answer (250-400 words) that:
 1. Directly addresses their question
@@ -294,6 +319,8 @@ GreenGap helps organizations:
 
 User's question: {user_question}
 
+IMPORTANT: Respond in {target_language} language.
+
 Provide a detailed answer (250-350 words) about this sustainability topic. Include:
 - Clear explanation
 - Actionable steps
@@ -302,7 +329,7 @@ Provide a detailed answer (250-350 words) about this sustainability topic. Inclu
 
 If unrelated to sustainability, redirect to: energy efficiency, rebound effects, carbon reduction, peak optimization, or behavior improvement."""
 
-            print(f" Sending to Gemini: {user_question[:50]}...")
+            print(f" Sending to Gemini in {target_language}: {user_question[:50]}...")
             
             # Use NEW API with correct model name
             response = gemini_client.models.generate_content(
@@ -310,13 +337,14 @@ If unrelated to sustainability, redirect to: energy efficiency, rebound effects,
                 contents=prompt
             )
             
-            print(f" Gemini responded successfully!")
+            print(f" Gemini responded successfully in {target_language}!")
             
             return {
                 "question": user_question,
                 "answer": response.text,
-                "powered_by": "Pathway AI + Google Gemini 2.5",
+                "powered_by": f"Pathway AI + Google Gemini 2.5 ({target_language})",
                 "source": "gemini_with_pathway_rag",
+                "language": user_language,
                 "knowledge_base_size": len(rag_system.knowledge_docs),
                 "timestamp": datetime.now().isoformat()
             }
@@ -333,6 +361,7 @@ If unrelated to sustainability, redirect to: energy efficiency, rebound effects,
                 "answer": response,
                 "powered_by": "Pathway AI + Knowledge Base (Fallback)",
                 "source": "knowledge_base_fallback",
+                "language": user_language,
                 "timestamp": datetime.now().isoformat()
             }
     
@@ -357,5 +386,185 @@ If unrelated to sustainability, redirect to: energy efficiency, rebound effects,
 I'll provide comprehensive, actionable answers!""",
         "powered_by": "Pathway AI + Google Gemini",
         "source": "default_prompt",
+        "language": user_language,
         "timestamp": datetime.now().isoformat()
     }
+
+@app.post("/export-report")
+async def export_report(data: dict):
+    """Generate PDF sustainability report with professional formatting"""
+    
+    # Create PDF in memory
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    # Custom Title Style
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        textColor=colors.HexColor('#22c55e'),
+        spaceAfter=30,
+        alignment=1  # Center
+    )
+    
+    # Title
+    title = Paragraph(" GreenGap Sustainability Report", title_style)
+    elements.append(title)
+    elements.append(Spacer(1, 0.3*inch))
+    
+    # Timestamp
+    timestamp = Paragraph(
+        f"<b>Generated:</b> {datetime.now().strftime('%B %d, %Y at %I:%M %p')}",
+        styles['Normal']
+    )
+    elements.append(timestamp)
+    elements.append(Spacer(1, 0.1*inch))
+    
+    # Powered by
+    powered_by = Paragraph(
+        "<i>Powered by Pathway AI + Google Gemini 2.5</i>",
+        styles['Normal']
+    )
+    elements.append(powered_by)
+    elements.append(Spacer(1, 0.3*inch))
+    
+    # Extract data from dashboard
+    dashboard = data.get('dashboard', data)
+    summary = dashboard.get('summary_cards', {})
+    
+    # Summary Cards Table
+    summary_data = [
+        ['Metric', 'Value', 'Status'],
+        ['Sustainability Index', f"{summary.get('sustainability_index', 0)}", f"{summary.get('sustainability_index', 0)} / 100"],
+        ['CO₂ Saved', f"{summary.get('co2_saved', 0)} kg", '✓ Active'],
+        ['Efficiency Score', f"{summary.get('efficiency_score', 0)}%", 'Optimizing'],
+        ['Behavior Score', f"{summary.get('behavior_score', 0)}%", 'Improving'],
+    ]
+    
+    summary_table = Table(summary_data, colWidths=[2.5*inch, 1.5*inch, 1.5*inch])
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#22c55e')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('TOPPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+    ]))
+    
+    elements.append(Paragraph("<b> Summary Metrics</b>", styles['Heading2']))
+    elements.append(Spacer(1, 0.2*inch))
+    elements.append(summary_table)
+    elements.append(Spacer(1, 0.4*inch))
+    
+    # Rebound Analysis
+    rebound_level = dashboard.get('rebound_level', 'N/A')
+    rebound_percentage = dashboard.get('rebound_percentage', 0)
+    corrected_projection = dashboard.get('corrected_projection', 0)
+    
+    elements.append(Paragraph("<b> Rebound Effect Analysis</b>", styles['Heading2']))
+    elements.append(Spacer(1, 0.2*inch))
+    
+    # Determine color based on rebound level
+    rebound_color = {
+        'HIGH': colors.red,
+        'MEDIUM': colors.orange,
+        'LOW': colors.green
+    }.get(rebound_level, colors.grey)
+    
+    rebound_data = [
+        ['Metric', 'Value'],
+        ['Rebound Level', rebound_level],
+        ['Rebound Percentage', f'{rebound_percentage}%'],
+        ['Corrected Projection', f"{corrected_projection} kg CO₂"],
+    ]
+    
+    rebound_table = Table(rebound_data, colWidths=[3*inch, 2.5*inch])
+    rebound_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3b82f6')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 11),
+        ('TOPPADDING', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('TEXTCOLOR', (1, 1), (1, 1), rebound_color),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    
+    elements.append(rebound_table)
+    elements.append(Spacer(1, 0.4*inch))
+    
+    # Behavior Insights
+    behavior_insights = dashboard.get('behavior_insights', {})
+    behavior_reason = behavior_insights.get('behavior_reason', 'No insights available')
+    
+    elements.append(Paragraph("<b> Behavior Insights</b>", styles['Heading2']))
+    elements.append(Spacer(1, 0.2*inch))
+    
+    insight_text = Paragraph(behavior_reason, styles['Normal'])
+    elements.append(insight_text)
+    elements.append(Spacer(1, 0.4*inch))
+    
+    # AI Recommendations
+    recommendations = dashboard.get('recommendations', [])
+    
+    elements.append(Paragraph("<b> AI-Powered Recommendations</b>", styles['Heading2']))
+    elements.append(Spacer(1, 0.2*inch))
+    
+    for i, rec in enumerate(recommendations[:6], 1):
+        rec_text = Paragraph(f"{i}. {rec}", styles['Normal'])
+        elements.append(rec_text)
+        elements.append(Spacer(1, 0.1*inch))
+    
+    elements.append(Spacer(1, 0.5*inch))
+    
+    # Footer
+    footer_style = ParagraphStyle(
+        'Footer',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.grey,
+        alignment=1
+    )
+    
+    footer = Paragraph(
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>"
+        "<b>Powered by GreenGap Intelligence</b><br/>"
+        "Pathway AI + Google Gemini 2.5 | Real-time Sustainability Analytics<br/>"
+        " Detecting Rebound Effects & Hidden Climate Loss",
+        footer_style
+    )
+    elements.append(footer)
+    
+    # Build PDF
+    try:
+        doc.build(elements)
+        buffer.seek(0)
+        
+        return StreamingResponse(
+            buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=GreenGap_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            }
+        )
+    except Exception as e:
+        print(f" PDF generation error: {e}")
+        return {
+            "error": "Failed to generate PDF report",
+            "message": str(e)
+        }
