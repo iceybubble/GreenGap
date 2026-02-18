@@ -25,17 +25,24 @@ ChartJS.register(
 );
 
 export default function Dashboard() {
+  // Use environment variable or fallback to deployed backend
+  const API_URL = import.meta.env.VITE_API_URL || "https://greengap-backend.onrender.com";
+  
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [language, setLanguage] = useState('en');
 
   const fetchData = async () => {
     try {
-      const response = await axios.get("http://127.0.0.1:8000/analyze");
+      setLoading(true);
+      setError(null);
+      const response = await axios.get(`${API_URL}/analyze`);
       setData(response.data.dashboard);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching data:", error);
+      setError(error.message || "Failed to connect to backend");
       setLoading(false);
     }
   };
@@ -53,7 +60,7 @@ export default function Dashboard() {
     }
     
     try {
-      const response = await fetch('http://127.0.0.1:8000/export-report', {
+      const response = await fetch(`${API_URL}/export-report`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -75,7 +82,7 @@ export default function Dashboard() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
-      console.log(' PDF exported successfully!');
+      console.log('PDF exported successfully!');
     } catch (error) {
       console.error(' Export failed:', error);
       alert('Failed to export report. Please try again.');
@@ -87,15 +94,22 @@ export default function Dashboard() {
       <div className="dashboard-loading">
         <div className="loading-spinner"></div>
         <p>Loading GreenGap Intelligence...</p>
+        <p className="loading-subtext">Connecting to Pathway AI + Gemini...</p>
       </div>
     );
   }
 
-  if (!data) {
+  if (error || !data) {
     return (
       <div className="dashboard-error">
-        <p> Failed to load dashboard data</p>
-        <button onClick={fetchData}>Retry</button>
+        <p>Failed to load dashboard data</p>
+        {error && <p className="error-details">{error}</p>}
+        <p className="error-hint">
+          Backend URL: {API_URL}
+          <br />
+          Note: Free tier backends may take 30-60 seconds to wake up on first request.
+        </p>
+        <button onClick={fetchData} className="retry-button">🔄 Retry Connection</button>
       </div>
     );
   }
@@ -212,7 +226,7 @@ export default function Dashboard() {
       {/* Rebound Effect Alert */}
       <div className={`rebound-alert rebound-${data.rebound_level.toLowerCase()}`}>
         <div className="alert-header">
-          <h2> Rebound Effect Detected</h2>
+          <h2>⚠️ Rebound Effect Detected</h2>
           <span className={`rebound-badge ${data.rebound_level.toLowerCase()}`}>
             {data.rebound_level}
           </span>
@@ -239,14 +253,14 @@ export default function Dashboard() {
       {/* Charts Section */}
       <div className="charts-section">
         <div className="chart-card">
-          <h2> Emissions Over Time</h2>
+          <h2>📈 Emissions Over Time</h2>
           <div className="chart-container">
             <Line data={chartData} options={chartOptions} />
           </div>
         </div>
 
         <div className="insights-card">
-          <h2> Behavior Insights</h2>
+          <h2>💡 Behavior Insights</h2>
           <p className="insight-text">{data.behavior_insights.behavior_reason}</p>
           <div className="insight-metrics">
             <div className="metric">
@@ -263,7 +277,7 @@ export default function Dashboard() {
 
       {/* Recommendations */}
       <div className="recommendations-section">
-        <h2> Pathway AI Recommendations</h2>
+        <h2>🤖 Pathway AI Recommendations</h2>
         <ul className="recommendations-list">
           {data.recommendations.map((rec, index) => (
             <li key={index} className="recommendation-item">
@@ -295,7 +309,7 @@ export default function Dashboard() {
       </button>
 
       {/* AI CHAT ASSISTANT */}
-      <AIChat language={language} />
+      <AIChat language={language} apiUrl={API_URL} />
     </div>
   );
 }

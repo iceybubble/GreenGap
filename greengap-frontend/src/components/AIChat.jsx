@@ -2,73 +2,17 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import "./AIChat.css";
 
-export default function AIChat({ language = 'en' }) {
+export default function AIChat({ language = 'en', apiUrl }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [inputValue, setInputValue] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState(null);
   const messagesEndRef = useRef(null);
+  const recognitionRef = useRef(null);
 
-  // Initialize speech recognition
-  useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognitionInstance = new SpeechRecognition();
-      
-      // Map language codes to speech recognition locales
-      const langMap = {
-        'en': 'en-US',
-        'es': 'es-ES',
-        'fr': 'fr-FR',
-        'de': 'de-DE',
-        'zh': 'zh-CN',
-        'hi': 'hi-IN',
-        'ar': 'ar-SA',
-        'pt': 'pt-BR'
-      };
-      
-      recognitionInstance.continuous = false;
-      recognitionInstance.interimResults = false;
-      recognitionInstance.lang = langMap[language] || 'en-US';
-      
-      recognitionInstance.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setInput(transcript);
-        setIsListening(false);
-      };
-      
-      recognitionInstance.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-        if (event.error === 'not-allowed') {
-          alert('Microphone access denied. Please allow microphone access in your browser settings.');
-        }
-      };
-      
-      recognitionInstance.onend = () => {
-        setIsListening(false);
-      };
-      
-      setRecognition(recognitionInstance);
-    }
-  }, [language]);
-
-  const toggleVoiceInput = () => {
-    if (!recognition) {
-      alert('Voice input is not supported in your browser. Please use Chrome, Edge, or Safari.');
-      return;
-    }
-    
-    if (isListening) {
-      recognition.stop();
-      setIsListening(false);
-    } else {
-      recognition.start();
-      setIsListening(true);
-    }
-  };
+  // Use provided apiUrl or fallback
+  const API_URL = apiUrl || import.meta.env.VITE_API_URL || "https://greengap-backend.onrender.com";
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -78,106 +22,164 @@ export default function AIChat({ language = 'en' }) {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      setMessages([
+        {
+          role: "assistant",
+          content: getWelcomeMessage(language),
+        },
+      ]);
+    }
+  }, [isOpen, language]);
+
+  const getWelcomeMessage = (lang) => {
+    const welcomes = {
+      en: " Hi! I'm your AI sustainability assistant powered by Google Gemini and Pathway RAG. Ask me anything about reducing your carbon footprint, preventing rebound effects, or improving energy efficiency!",
+      es: " ¡Hola! Soy tu asistente de sostenibilidad impulsado por IA. ¡Pregúntame cualquier cosa sobre reducir tu huella de carbono!",
+      fr: " Bonjour! Je suis votre assistant de durabilité alimenté par l'IA. Posez-moi des questions sur la réduction de votre empreinte carbone!",
+      de: " Hallo! Ich bin Ihr KI-gestützter Nachhaltigkeitsassistent. Fragen Sie mich alles über die Reduzierung Ihres CO₂-Fußabdrucks!",
+      zh: " 你好！我是您的人工智能可持续发展助手。询问我有关减少碳足迹的任何问题！",
+      hi: " नमस्���े! मैं आपका AI स्थिरता सहायक हूं। मुझसे कार्बन फुटप्रिंट कम करने के बारे में कुछ भी पूछें!",
+      ar: " مرحبا! أنا مساعد الاستدامة الخاص بك المدعوم بالذكاء الاصطناعي. اسألني أي شيء عن تقليل بصمتك الكربونية!",
+      pt: " Olá! Sou seu assistente de sustentabilidade alimentado por IA. Pergunte-me qualquer coisa sobre reduzir sua pegada de carbono!",
+    };
+    return welcomes[lang] || welcomes.en;
+  };
+
   const sendMessage = async (messageText = null) => {
-    const textToSend = messageText || input;
-    if (!textToSend.trim()) return;
+    const textToSend = messageText || inputValue.trim();
+    if (!textToSend) return;
 
     const userMessage = { role: "user", content: textToSend };
-    setMessages([...messages, userMessage]);
-    setInput("");
-    setLoading(true);
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue("");
+    setIsTyping(true);
 
     try {
-      const response = await axios.post("http://127.0.0.1:8000/chat", {
+      const response = await axios.post(`${API_URL}/chat`, {
         message: textToSend,
-        language: language
+        language: language,
       });
 
-      setMessages(prev => [...prev, {
+      const assistantMessage = {
         role: "assistant",
-        content: response.data.answer,
-        powered_by: response.data.powered_by
-      }]);
+        content: response.data.response,
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      console.error("Chat error:", error);
-      setMessages(prev => [...prev, {
+      console.error("Error sending message:", error);
+      const errorMessage = {
         role: "assistant",
-        content: "❌ Sorry, I'm having trouble connecting. Please try again."
-      }]);
+        content: ` Sorry, I encountered an error connecting to the backend. ${
+          error.response?.status === 504 ? 
+          "The server might be waking up (free tier sleep). Please try again in 30 seconds." : 
+          "Please try again."
+        }`,
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
-      setLoading(false);
+      setIsTyping(false);
     }
   };
 
-  const quickQuestions = [
-    "How do I prevent rebound effects?",
-    "What is peak hour optimization?",
-    "How can I improve behavior scores?",
-    "Tell me about carbon reduction"
-  ];
+  const startVoiceRecognition = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('Voice recognition is not supported in your browser. Please use Chrome or Edge.');
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    
+    const languageCodes = {
+      en: 'en-US',
+      es: 'es-ES',
+      fr: 'fr-FR',
+      de: 'de-DE',
+      zh: 'zh-CN',
+      hi: 'hi-IN',
+      ar: 'ar-SA',
+      pt: 'pt-BR',
+    };
+
+    recognition.lang = languageCodes[language] || 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setInputValue(transcript);
+      setIsListening(false);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      if (event.error === 'no-speech') {
+        alert('No speech detected. Please try again.');
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
 
   return (
     <>
-      {/* Chat Button */}
+      {/* Floating Chat Button */}
       <button
-        className="chat-toggle-btn"
+        className={`floating-chat-btn ${isOpen ? "open" : ""}`}
         onClick={() => setIsOpen(!isOpen)}
-        aria-label="Toggle AI chat"
+        aria-label="Toggle AI chat assistant"
       >
-        🤖
+        {isOpen ? "✖" : "🤖"}
       </button>
 
       {/* Chat Window */}
       {isOpen && (
         <div className="chat-window">
           <div className="chat-header">
-            <div className="header-content">
-              <span className="chat-title">🤖 AI Assistant</span>
-              <span className="chat-status">● Online</span>
+            <div className="chat-header-content">
+              <span className="chat-icon">🤖</span>
+              <div>
+                <h3>AI Assistant</h3>
+                <p className="chat-status">
+                  <span className="status-dot"></span> Online
+                </p>
+              </div>
             </div>
-            <button 
-              className="close-btn" 
-              onClick={() => setIsOpen(false)}
-              aria-label="Close chat"
-            >
-              ✕
+            <button onClick={() => setIsOpen(false)} className="close-chat-btn">
+              ✖
             </button>
           </div>
 
           <div className="chat-messages">
-            {messages.length === 0 && (
-              <div className="welcome-message">
-                <p>👋 Hi! I'm your sustainability AI assistant.</p>
-                <p>Try these quick questions:</p>
-                <div className="quick-questions">
-                  {quickQuestions.map((q, i) => (
-                    <button
-                      key={i}
-                      className="quick-question-btn"
-                      onClick={() => sendMessage(q)}
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {messages.map((msg, index) => (
-              <div key={index} className={`message ${msg.role}`}>
-                <div className="message-content">
-                  {msg.content}
-                  {msg.powered_by && (
-                    <div className="message-footer">
-                      <small>🔋 {msg.powered_by}</small>
-                    </div>
-                  )}
-                </div>
+              <div
+                key={index}
+                className={`message ${msg.role === "user" ? "user-message" : "assistant-message"}`}
+              >
+                <div className="message-content">{msg.content}</div>
               </div>
             ))}
-
-            {loading && (
-              <div className="message assistant">
+            {isTyping && (
+              <div className="message assistant-message">
                 <div className="typing-indicator">
                   <span></span>
                   <span></span>
@@ -185,34 +187,37 @@ export default function AIChat({ language = 'en' }) {
                 </div>
               </div>
             )}
-
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="chat-input">
+          <div className="chat-footer">
+            <p className="chat-info">Powered by Pathway AI + Gemini 2.5</p>
+          </div>
+
+          <div className="chat-input-container">
+            <button
+              className={`voice-btn ${isListening ? "listening" : ""}`}
+              onClick={startVoiceRecognition}
+              title={`Voice input (${language.toUpperCase()})`}
+              aria-label="Start voice input"
+            >
+              🎤
+            </button>
             <input
               type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !loading && sendMessage()}
+              className="chat-input"
               placeholder="Ask about sustainability..."
-              disabled={loading}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleKeyPress}
             />
-            <button 
-              onClick={toggleVoiceInput}
-              className={`voice-btn ${isListening ? 'listening' : ''}`}
-              disabled={loading}
-              aria-label="Voice input"
-              title={isListening ? "Listening..." : "Click to speak"}
-            >
-              {isListening ? '🔴' : '🎤'}
-            </button>
-            <button 
-              onClick={() => sendMessage()} 
-              disabled={loading || !input.trim()}
+            <button
+              className="send-btn"
+              onClick={() => sendMessage()}
+              disabled={!inputValue.trim() || isTyping}
               aria-label="Send message"
             >
-              {loading ? '⏳' : '📤'}
+              📤
             </button>
           </div>
         </div>
