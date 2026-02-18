@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchDashboard } from "../services/api";
 import EmissionsChart from "../components/EmissionsChart";
+import AIChat from "../components/AIChat";
 import "./Dashboard.css";
 
 export default function Dashboard() {
@@ -29,7 +30,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 30000);
+    const interval = setInterval(loadData, 120000); // 2 minutes (120 seconds)
     return () => clearInterval(interval);
   }, []);
 
@@ -161,6 +162,18 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* 🔥 AI POWERED BADGE - NEW! */}
+      {/* AI Powered Badge */}
+{data?.rag_enabled && (
+  <div className="ai-badge-container">
+    <div className="ai-badge">
+      
+      <span className="ai-text">Powered by Pathway AI</span>
+      <span className="rag-badge">RAG</span>
+    </div>
+  </div>
+)}
+
       {/* Chart */}
       {data.emissions_chart && (
         <div className="chart-section">
@@ -172,7 +185,12 @@ export default function Dashboard() {
       {/* Recommendations with Expand/Collapse */}
       {recommendations.length > 0 && (
         <div className="recommendation-panel">
-          <h2>🤖 AI Recommendations</h2>
+          <h2>
+            🤖 Pathway AI Recommendations
+            {data?.ai_engine && (
+              <span className="engine-badge">{data.ai_engine}</span>
+            )}
+          </h2>
           <ul className="recommendation-list">
             {recommendations.map((rec, i) => (
               <li 
@@ -195,6 +213,9 @@ export default function Dashboard() {
           </ul>
         </div>
       )}
+
+      {/* AI CHAT ASSISTANT - NEW! */}
+      <AIChat />
     </div>
   );
 }
