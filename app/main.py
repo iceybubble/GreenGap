@@ -29,8 +29,8 @@ except ImportError:
 
 app = FastAPI(
     title="GreenGap API - Powered by Pathway AI + Gemini", 
-    version="2.1.0",
-    description="AI-powered sustainability analytics with Pathway RAG + Google Gemini + Real Data Support"
+    version="2.2.0",
+    description="AI-powered sustainability analytics with Pathway RAG + Google Gemini + Multi-Format Data Support"
 )
 
 # Configure NEW Gemini API
@@ -68,10 +68,10 @@ app.add_middleware(
 def read_root():
     return {
         "message": "GreenGap backend running with Pathway AI + Google Gemini",
-        "version": "2.1.0",
+        "version": "2.2.0",
         "ai_powered": True,
         "gemini_active": gemini_client is not None,
-        "tech_stack": ["FastAPI", "Pathway", "RAG", "Google Gemini", "pandas"],
+        "tech_stack": ["FastAPI", "Pathway", "RAG", "Google Gemini", "pandas", "openpyxl"],
         "features": [
             "Real-time analytics", 
             "AI recommendations", 
@@ -79,8 +79,9 @@ def read_root():
             "Conversational AI", 
             "PDF Export", 
             "Multi-Language",
-            "CSV Upload Support"
-        ]
+            "Multi-Format Upload (CSV, Excel, JSON)"
+        ],
+        "supported_formats": ["CSV (.csv)", "Excel (.xlsx, .xls)", "JSON (.json)"]
     }
 
 @app.get("/analyze")
@@ -178,9 +179,14 @@ def analyze():
 @app.post("/upload-data")
 async def upload_real_data(file: UploadFile = File(...)):
     """
-    Upload CSV with real energy consumption data
+    Upload energy consumption data in multiple formats
     
-    Required CSV columns:
+    Supported Formats:
+    - CSV (.csv)
+    - Excel (.xlsx, .xls)
+    - JSON (.json)
+    
+    Required columns/fields:
     - date: Date in YYYY-MM-DD format
     - baseline_kwh: Baseline energy consumption (before efficiency improvements)
     - actual_kwh: Actual energy consumption (after efficiency improvements)
@@ -190,15 +196,44 @@ async def upload_real_data(file: UploadFile = File(...)):
     date,baseline_kwh,actual_kwh,efficiency_improvement
     2026-02-01,450,375,0.30
     2026-02-02,445,370,0.30
+    
+    Example JSON:
+    [
+      {"date": "2026-02-01", "baseline_kwh": 450, "actual_kwh": 375, "efficiency_improvement": 0.30},
+      {"date": "2026-02-02", "baseline_kwh": 445, "actual_kwh": 370, "efficiency_improvement": 0.30}
+    ]
     """
     try:
         print(f" Received file: {file.filename}")
         
-        # Read CSV file
         contents = await file.read()
-        df = pd.read_csv(iolib.BytesIO(contents))
         
-        print(f" CSV loaded with {len(df)} rows")
+        # Auto-detect and parse based on file extension
+        if file.filename.endswith('.csv'):
+            df = pd.read_csv(iolib.BytesIO(contents))
+            format_type = "CSV"
+            
+        elif file.filename.endswith('.xlsx'):
+            df = pd.read_excel(iolib.BytesIO(contents), engine='openpyxl')
+            format_type = "Excel (XLSX)"
+            
+        elif file.filename.endswith('.xls'):
+            df = pd.read_excel(iolib.BytesIO(contents), engine='xlrd')
+            format_type = "Excel (XLS)"
+            
+        elif file.filename.endswith('.json'):
+            df = pd.read_json(iolib.BytesIO(contents))
+            format_type = "JSON"
+            
+        else:
+            return {
+                "error": "Unsupported file format",
+                "supported_formats": ["CSV (.csv)", "Excel (.xlsx, .xls)", "JSON (.json)"],
+                "help": "Please upload a CSV, Excel, or JSON file with energy consumption data",
+                "example_csv": "date,baseline_kwh,actual_kwh,efficiency_improvement\\n2026-02-01,450,375,0.30"
+            }
+        
+        print(f" Loaded {format_type} with {len(df)} rows")
         print(f" Columns: {df.columns.tolist()}")
         
         # Validate required columns
@@ -210,7 +245,8 @@ async def upload_real_data(file: UploadFile = File(...)):
                 "error": f"Missing required columns: {missing_cols}",
                 "required": required_cols,
                 "found": df.columns.tolist(),
-                "help": "CSV should have: date, baseline_kwh, actual_kwh, efficiency_improvement"
+                "format_detected": format_type,
+                "help": "Make sure your file has these columns: date, baseline_kwh, actual_kwh, efficiency_improvement"
             }
         
         # Convert date column to datetime
@@ -272,10 +308,11 @@ async def upload_real_data(file: UploadFile = File(...)):
             "rebound_level": rebound_level,
             "rebound_percentage": int(rebound_percentage),
             "corrected_projection": round(corrected_co2, 2),
-            "ai_engine": "Pathway RAG + Gemini 2.5 (Real Data Analysis)",
+            "ai_engine": f"Pathway RAG + Gemini 2.5 (Real {format_type} Data)",
             "knowledge_docs_used": 10,
-            "data_source": "CSV Upload",
+            "data_source": f"{format_type} Upload",
             "data_points": len(df),
+            "file_format": format_type,
             
             "summary_cards": {
                 "sustainability_index": str(round(sustainability_index, 1)),
@@ -292,7 +329,7 @@ async def upload_real_data(file: UploadFile = File(...)):
             },
             
             "behavior_insights": {
-                "behavior_reason": f"Real data analysis from {len(df)} data points shows {rebound_level} rebound effect. "
+                "behavior_reason": f"Real {format_type} data analysis from {len(df)} data points shows {rebound_level} rebound effect. "
                                  f"Despite {df['efficiency_improvement'].mean()*100:.0f}% efficiency improvements, "
                                  f"actual consumption is {rebound_percentage:.1f}% higher than expected due to behavioral changes. "
                                  f"Total CO₂ saved: {total_co2_saved:.1f} kg, but corrected projection shows only "
@@ -306,21 +343,25 @@ async def upload_real_data(file: UploadFile = File(...)):
         
         return {
             "status": "success",
-            "message": f"Successfully analyzed {len(df)} data points from {file.filename}",
+            "message": f"Successfully analyzed {len(df)} data points from {file.filename} ({format_type})",
+            "format": format_type,
             "dashboard": dashboard_data
         }
         
     except pd.errors.EmptyDataError:
-        return {"error": "CSV file is empty"}
+        return {"error": "File is empty", "help": "Please upload a file with energy consumption data"}
     except pd.errors.ParserError:
-        return {"error": "Invalid CSV format. Please check your file."}
+        return {"error": "Invalid file format. Please check your file structure."}
+    except ValueError as e:
+        return {"error": f"Data validation error: {str(e)}", "help": "Check that date format is YYYY-MM-DD and numeric columns contain valid numbers"}
     except Exception as e:
-        print(f" Error processing CSV: {str(e)}")
+        print(f" Error processing file: {str(e)}")
         import traceback
         traceback.print_exc()
         return {
             "error": f"Error processing file: {str(e)}",
-            "help": "Make sure CSV has columns: date, baseline_kwh, actual_kwh, efficiency_improvement"
+            "help": "Make sure your file has columns: date, baseline_kwh, actual_kwh, efficiency_improvement",
+            "supported_formats": ["CSV (.csv)", "Excel (.xlsx, .xls)", "JSON (.json)"]
         }
 
 
@@ -411,7 +452,8 @@ def health_check():
         "rag_status": "operational",
         "gemini_status": "active" if gemini_client else "fallback_mode",
         "knowledge_base_size": len(rag_system.knowledge_docs),
-        "csv_upload_enabled": True,
+        "upload_enabled": True,
+        "supported_formats": ["CSV", "Excel (XLSX/XLS)", "JSON"],
         "timestamp": datetime.now().isoformat()
     }
 
@@ -657,7 +699,7 @@ async def export_report(data: dict):
     )
     
     # Title
-    title = Paragraph(" GreenGap Sustainability Report", title_style)
+    title = Paragraph("GreenGap Sustainability Report", title_style)
     elements.append(title)
     elements.append(Spacer(1, 0.3*inch))
     
