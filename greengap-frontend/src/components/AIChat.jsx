@@ -53,7 +53,7 @@ export default function AIChat({ language = 'en', apiUrl }) {
       es: "👋 ¡Hola! Soy tu asistente de sostenibilidad impulsado por IA. ¡Pregúntame cualquier cosa sobre reducir tu huella de carbono!",
       fr: "👋 Bonjour! Je suis votre assistant de durabilité alimenté par l'IA. Posez-moi des questions sur la réduction de votre empreinte carbone!",
       de: "👋 Hallo! Ich bin Ihr KI-gestützter Nachhaltigkeitsassistent. Fragen Sie mich alles über die Reduzierung Ihres CO₂-Fußabdrucks!",
-      zh: "👋 你好！我是您的人工智能可持续发展助手。询问我有关减少碳足迹的��何问题！",
+      zh: "👋 你好！我是您的人工智能可持续发展助手。询问我有关减少碳足迹的任何问题！",
       hi: "👋 नमस्ते! मैं आपका AI स्थिरता सहायक हूं। मुझसे कार्बन फुटप्रिंट कम करने के बारे में कुछ भी पूछें!",
       ar: "👋 مرحبا! أنا مساعد الاستدامة الخاص بك المدعوم بالذكاء الاصطناعي. اسألني أي شيء عن تقليل بصمتك الكربونية!",
       pt: "👋 Olá! Sou seu assistente de sustentabilidade alimentado por IA. Pergunte-me qualquer coisa sobre reduzir sua pegada de carbono!",
@@ -92,12 +92,12 @@ export default function AIChat({ language = 'en', apiUrl }) {
       console.log('Response received:', response.data);
 
       // Handle backend response format (answer field)
-const aiResponse = response.data.answer || response.data.response || response.data.text || "I received your message but couldn't generate a response.";
+      const aiResponse = response.data.answer || response.data.response || response.data.text || "I received your message but couldn't generate a response.";
 
-const assistantMessage = {
-  role: "assistant",
-  content: aiResponse,
-};
+      const assistantMessage = {
+        role: "assistant",
+        content: aiResponse,
+      };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error("Error sending message:", error);
@@ -107,6 +107,61 @@ const assistantMessage = {
         response: error.response,
       });
       
+      // MOCK RESPONSES FOR DEMO MODE
+      const mockResponses = {
+        "rebound": " DEMO MODE: The rebound effect (Jevons Paradox) occurs when efficiency improvements lead to increased consumption. For example, after installing LED lights, people may leave them on 30-80% longer because the cost per hour is lower.\n\nTo prevent this:\n1) Use automated scheduling and timers\n2) Set usage caps with smart plugs\n3) Implement real-time monitoring\n4) Launch behavioral awareness campaigns\n\nIn production, this response would be powered by Pathway RAG (10 sustainability documents) + Google Gemini 2.5 for personalized, context-aware recommendations.",
+        
+        "energy": " DEMO MODE: To save energy effectively:\n\n1) Install smart thermostats (10-23% heating savings)\n2) Use LED lights with motion sensors\n3) Optimize HVAC with quarterly maintenance\n4) Shift consumption to off-peak hours (25-45% cost reduction)\n5) Conduct professional energy audits ($300-500) to identify 15-30% additional savings\n\nIn production, this would analyze YOUR specific usage patterns using AI to provide personalized recommendations.",
+        
+        "solar": " DEMO MODE: Solar panels provide 40-60% carbon footprint reduction with 5-7 year ROI including federal incentives.\n\nConsiderations:\n• Roof orientation (south-facing optimal)\n• Shading analysis\n• Local utility rates and net metering policies\n• Battery storage for maximum benefit\n\nIn production, I would calculate exact ROI based on your location, energy usage, and local incentives using real-time data.",
+        
+        "calculate": " DEMO MODE: Expected emissions calculation:\n\nBaseline Consumption × Efficiency Improvement Rate\nExample: 450 kWh baseline × 30% efficiency = 315 kWh expected\n\nHowever, rebound effects increase actual consumption to 375 kWh, creating a 'gap' of 60 kWh (hidden climate loss).\n\nRebound % = (375 - 315) / (450 - 315) × 100 = 44%\n\nIn production, this would use YOUR actual meter data for precise calculations.",
+        
+        "hello": " DEMO MODE: Hello! I'm GreenGap's AI assistant. In production, I'm powered by:\n\n• Pathway RAG (10 sustainability documents)\n• Google Gemini 2.5 Flash\n• Real-time behavioral analysis\n• Multi-language support (8 languages)\n\nCurrently showing demo responses because the backend is sleeping (Render free tier). Try asking about:\n• Rebound effects\n• Energy savings\n• Solar panels\n• Emission calculations\n\nBackend will wake up in 30-60 seconds if you refresh!",
+        
+        "help": " DEMO MODE: I can help you with:\n\n Understanding rebound effects\n Energy-saving strategies\n Solar panel analysis\n Emission calculations\n Behavioral interventions\n Sustainability best practices\n\nIn production, I analyze YOUR specific situation using:\n• Pathway RAG with verified sustainability research\n• Google Gemini 2.5 for natural language understanding\n• Real-time consumption data\n• Personalized recommendations\n\nCurrently in demo mode - backend is sleeping!",
+        
+        "pdf": " DEMO MODE: In production, you can export comprehensive PDF reports including:\n\n Executive Summary with sustainability index\n Rebound effect analysis and trends\n AI-generated recommendations\n Emissions breakdown (baseline vs actual)\n Behavioral insights and interventions\n\nClick the PDF button on the dashboard to download your personalized sustainability report!",
+        
+        "pathway": " DEMO MODE: Pathway RAG is our knowledge retrieval system that:\n\n Searches through 10 sustainability documents\n Includes IPCC reports, Energy Star guidelines, behavioral studies\n Finds context-relevant information for your questions\n Enhances Google Gemini responses with verified data\n Reduces AI hallucinations by grounding answers in facts\n\nThis ensures accurate, evidence-based sustainability recommendations!",
+        
+        "default": " DEMO MODE: Backend is currently sleeping (Render free tier spins down after 15 minutes of inactivity).\n\nIn production, I would:\n• Analyze your specific situation using Pathway RAG\n• Retrieve relevant knowledge from 10 sustainability documents\n• Generate personalized recommendations with Google Gemini 2.5\n• Detect rebound effects in real-time\n• Provide actionable insights\n\nThe platform features:\n Multi-language support (8 languages)\n Voice input capability\n Context-aware responses\n Evidence-based recommendations\n\nBackend will wake up automatically in 30-60 seconds. Try refreshing the dashboard or asking another question!"
+      };
+      
+      // Find matching mock response
+      const userMessageLower = textToSend.toLowerCase();
+      let mockResponse = mockResponses.default;
+      
+      if (userMessageLower.includes("rebound") || userMessageLower.includes("jevons")) {
+        mockResponse = mockResponses.rebound;
+      } else if (userMessageLower.includes("energy") || userMessageLower.includes("save") || userMessageLower.includes("saving")) {
+        mockResponse = mockResponses.energy;
+      } else if (userMessageLower.includes("solar") || userMessageLower.includes("panel")) {
+        mockResponse = mockResponses.solar;
+      } else if (userMessageLower.includes("calculate") || userMessageLower.includes("emission") || userMessageLower.includes("math") || userMessageLower.includes("formula")) {
+        mockResponse = mockResponses.calculate;
+      } else if (userMessageLower.includes("hello") || userMessageLower.includes("hi") || userMessageLower.includes("hey")) {
+        mockResponse = mockResponses.hello;
+      } else if (userMessageLower.includes("help") || userMessageLower.includes("what can you do")) {
+        mockResponse = mockResponses.help;
+      } else if (userMessageLower.includes("pdf") || userMessageLower.includes("report") || userMessageLower.includes("export")) {
+        mockResponse = mockResponses.pdf;
+      } else if (userMessageLower.includes("pathway") || userMessageLower.includes("rag") || userMessageLower.includes("how do you work")) {
+        mockResponse = mockResponses.pathway;
+      }
+      
+      // Show mock response if backend is down
+      if (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK' || error.response?.status >= 500 || error.message === 'Network Error' || !error.response) {
+        const mockMessage = {
+          role: "assistant",
+          content: mockResponse,
+        };
+        setMessages((prev) => [...prev, mockMessage]);
+        setIsTyping(false);
+        return;
+      }
+      
+      // Original error handling for non-network errors
       let errorMsg = " Sorry, I encountered an error. ";
       
       if (error.code === 'ECONNABORTED') {
@@ -136,44 +191,43 @@ const assistantMessage = {
   };
 
   const startVoiceRecognition = () => {
-  // Check browser support
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    alert('Voice recognition is not supported in your browser. Please use Chrome or Edge.');
-    return;
-  }
-
-  // If already listening, stop the current recognition
-  if (isListening && recognitionRef.current) {
-    try {
-      recognitionRef.current.abort();
-      setIsListening(false);
-      recognitionRef.current = null;
-    } catch (e) {
-      console.warn('Error aborting recognition:', e);
+    // Check browser support
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('Voice recognition is not supported in your browser. Please use Chrome or Edge.');
+      return;
     }
-    return;
-  }
 
-  // Stop any existing recognition before starting new one
-  if (recognitionRef.current) {
-    try {
-      recognitionRef.current.abort();
-      recognitionRef.current = null;
-    } catch (e) {
-      // Ignore abort errors
+    // If already listening, stop the current recognition
+    if (isListening && recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+        setIsListening(false);
+        recognitionRef.current = null;
+      } catch (e) {
+        console.warn('Error aborting recognition:', e);
+      }
+      return;
     }
-    // Wait a bit before starting new recognition
-    setTimeout(() => {
-      startNewRecognition();
-    }, 100);
-    return;
-  }
 
-  startNewRecognition();
-};
+    // Stop any existing recognition before starting new one
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+        recognitionRef.current = null;
+      } catch (e) {
+        // Ignore abort errors
+      }
+      // Wait a bit before starting new recognition
+      setTimeout(() => {
+        startNewRecognition();
+      }, 100);
+      return;
+    }
 
-const startNewRecognition = () => {
+    startNewRecognition();
+  };
 
+  const startNewRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     

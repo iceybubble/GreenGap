@@ -34,18 +34,60 @@ export default function Dashboard() {
   const [language, setLanguage] = useState('en');
 
   const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await axios.get(`${API_URL}/analyze`);
-      setData(response.data.dashboard);
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      setError(error.message || "Failed to connect to backend");
-      setLoading(false);
-    }
-  };
+  try {
+    setLoading(true);
+    setError(null);
+    const response = await axios.get(`${API_URL}/analyze`, {
+      timeout: 10000, // 10 second timeout
+    });
+    setData(response.data.dashboard);
+    setLoading(false);
+  } catch (error) {
+    console.error(" Backend unavailable, using demo data:", error);
+    
+    // FALLBACK: Use mock data if backend is down
+    const mockData = {
+      analysis_id: "DEMO-" + Date.now(),
+      sustainability_index: 74.7,
+      rebound_level: "MEDIUM",
+      rebound_percentage: 53,
+      corrected_projection: 127,
+      ai_engine: "Demo Mode (Backend Offline)",
+      knowledge_docs_used: 10,
+      
+      summary_cards: {
+        sustainability_index: "74.7",
+        co2_saved: "245",
+        efficiency_score: "87.1",
+        behavior_score: "78.1"
+      },
+      
+      emissions_chart: {
+        labels: ["Week 1", "Week 2", "Week 3", "Week 4"],
+        baseline: [450, 445, 440, 435],
+        expected: [315, 312, 308, 305],
+        actual: [375, 370, 368, 365]
+      },
+      
+      behavior_insights: {
+        behavior_reason: " DEMO MODE: Backend is temporarily unavailable. This is sample data showing how rebound effects occur when efficient devices are used more frequently, negating 40-70% of expected savings. In production, this would show your real-time sustainability analysis powered by Pathway RAG + Google Gemini 2.5."
+      },
+      
+      recommendations: [
+        " DEMO MODE ACTIVE - Backend is sleeping or unavailable",
+        " In production: Implement automated scheduling to prevent rebound effects",
+        " In production: Deploy smart thermostats for 30-40% energy reduction",
+        " In production: Launch gamification program to improve behavior scores by 10-15 points",
+        " In production: Shift 20-30% of consumption to off-peak hours for cost savings",
+        " This demo data shows full platform capabilities - backend will restore automatically"
+      ]
+    };
+    
+    setData(mockData);
+    setError(" Using demo data - backend is sleeping (Render free tier spins down after 15min inactivity)");
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchData();
@@ -109,7 +151,7 @@ export default function Dashboard() {
           <br />
           Note: Free tier backends may take 30-60 seconds to wake up on first request.
         </p>
-        <button onClick={fetchData} className="retry-button">🔄 Retry Connection</button>
+        <button onClick={fetchData} className="retry-button"> Retry Connection</button>
       </div>
     );
   }
@@ -155,6 +197,26 @@ export default function Dashboard() {
       },
     },
   };
+
+  const wakeBackend = async () => {
+  setLoading(true);
+  setError(" Waking up backend... This may take 30-60 seconds...");
+  
+  try {
+    const response = await axios.get(`${API_URL}/health`, { 
+      timeout: 90000 // 90 second timeout for wake-up
+    });
+    
+    if (response.data.status === "healthy") {
+      setError(null);
+      alert(" Backend is awake! Refreshing dashboard...");
+      fetchData(); // Refresh with real data
+    }
+  } catch (error) {
+    setError(" Backend is still waking up. Wait 30 seconds and click 'Refresh Dashboard' again.");
+    setLoading(false);
+  }
+};
 
   return (
     <div className="dashboard-container">
