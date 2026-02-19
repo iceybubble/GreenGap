@@ -36,128 +36,128 @@ export default function Dashboard() {
   const [uploadSuccess, setUploadSuccess] = useState(null);
 
   const fetchData = async () => {
-  try {
-    setLoading(true);
-    setError(null);
-    const response = await axios.get(`${API_URL}/analyze`, {
-      timeout: 10000, // 10 second timeout
-    });
-    setData(response.data.dashboard);
-    setLoading(false);
-  } catch (error) {
-    console.error(" Backend unavailable, using demo data:", error);
-
-    const handleFileUpload = async (event) => {
-  const file = event.target.files[0];
-  
-  if (!file) return;
-  
-  // Validate file type
-  if (!file.name.endsWith('.csv')) {
-    alert(' Please upload a CSV file');
-    return;
-  }
-  
-  setUploadingFile(true);
-  setUploadSuccess(null);
-  setError(null);
-  
-  const formData = new FormData();
-  formData.append('file', file);
-  
-  try {
-    console.log(` Uploading file: ${file.name}`);
-    
-    const response = await axios.post(`${API_URL}/upload-data`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
-      timeout: 30000 // 30 second timeout for large files
-    });
-    
-    console.log(' Upload response:', response.data);
-    
-    if (response.data.status === 'success') {
-      setData(response.data.dashboard);
+    try {
+      setLoading(true);
       setError(null);
+      const response = await axios.get(`${API_URL}/analyze`, {
+        timeout: 10000, // 10 second timeout
+      });
+      setData(response.data.dashboard);
       setLoading(false);
-      setUploadSuccess(` Successfully loaded ${response.data.dashboard.data_points} data points from ${file.name}`);
+    } catch (error) {
+      console.error(" Backend unavailable, using demo data:", error);
       
-      // Clear success message after 5 seconds
-      setTimeout(() => setUploadSuccess(null), 5000);
-    } else {
-      throw new Error(response.data.error || 'Upload failed');
+      // FALLBACK: Use mock data if backend is down
+      const mockData = {
+        analysis_id: "DEMO-" + Date.now(),
+        sustainability_index: 74.7,
+        rebound_level: "MEDIUM",
+        rebound_percentage: 53,
+        corrected_projection: 127,
+        ai_engine: "Demo Mode (Backend Offline)",
+        knowledge_docs_used: 10,
+        
+        summary_cards: {
+          sustainability_index: "74.7",
+          co2_saved: "245",
+          efficiency_score: "87.1",
+          behavior_score: "78.1"
+        },
+        
+        emissions_chart: {
+          labels: ["Week 1", "Week 2", "Week 3", "Week 4"],
+          baseline: [450, 445, 440, 435],
+          expected: [315, 312, 308, 305],
+          actual: [375, 370, 368, 365]
+        },
+        
+        behavior_insights: {
+          behavior_reason: " DEMO MODE: Backend is temporarily unavailable. This is sample data showing how rebound effects occur when efficient devices are used more frequently, negating 40-70% of expected savings. In production, this would show your real-time sustainability analysis powered by Pathway RAG + Google Gemini 2.5."
+        },
+        
+        recommendations: [
+          " DEMO MODE ACTIVE - Backend is sleeping or unavailable",
+          " In production: Implement automated scheduling to prevent rebound effects",
+          " In production: Deploy smart thermostats for 30-40% energy reduction",
+          " In production: Launch gamification program to improve behavior scores by 10-15 points",
+          " In production: Shift 20-30% of consumption to off-peak hours for cost savings",
+          " This demo data shows full platform capabilities - backend will restore automatically"
+        ]
+      };
+      
+      setData(mockData);
+      setError(" Using demo data - backend is sleeping (Render free tier spins down after 15min inactivity)");
+      setLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.name.endsWith('.csv')) {
+      alert(' Please upload a CSV file');
+      return;
     }
     
-  } catch (error) {
-    console.error(' Upload failed:', error);
-    
-    let errorMsg = 'Failed to upload file. ';
-    
-    if (error.response?.data?.error) {
-      errorMsg += error.response.data.error;
-      if (error.response.data.help) {
-        errorMsg += '\n\n' + error.response.data.help;
-      }
-    } else if (error.code === 'ECONNABORTED') {
-      errorMsg += 'Upload timeout. File might be too large.';
-    } else {
-      errorMsg += error.message;
-    }
-    
-    alert(errorMsg);
-    setError(errorMsg);
+    setUploadingFile(true);
     setUploadSuccess(null);
-    setLoading(false);
-  } finally {
-    setUploadingFile(false);
-    event.target.value = null; // Reset file input
-  }
-};
+    setError(null);
     
-    // FALLBACK: Use mock data if backend is down
-    const mockData = {
-      analysis_id: "DEMO-" + Date.now(),
-      sustainability_index: 74.7,
-      rebound_level: "MEDIUM",
-      rebound_percentage: 53,
-      corrected_projection: 127,
-      ai_engine: "Demo Mode (Backend Offline)",
-      knowledge_docs_used: 10,
-      
-      summary_cards: {
-        sustainability_index: "74.7",
-        co2_saved: "245",
-        efficiency_score: "87.1",
-        behavior_score: "78.1"
-      },
-      
-      emissions_chart: {
-        labels: ["Week 1", "Week 2", "Week 3", "Week 4"],
-        baseline: [450, 445, 440, 435],
-        expected: [315, 312, 308, 305],
-        actual: [375, 370, 368, 365]
-      },
-      
-      behavior_insights: {
-        behavior_reason: " DEMO MODE: Backend is temporarily unavailable. This is sample data showing how rebound effects occur when efficient devices are used more frequently, negating 40-70% of expected savings. In production, this would show your real-time sustainability analysis powered by Pathway RAG + Google Gemini 2.5."
-      },
-      
-      recommendations: [
-        " DEMO MODE ACTIVE - Backend is sleeping or unavailable",
-        " In production: Implement automated scheduling to prevent rebound effects",
-        " In production: Deploy smart thermostats for 30-40% energy reduction",
-        " In production: Launch gamification program to improve behavior scores by 10-15 points",
-        " In production: Shift 20-30% of consumption to off-peak hours for cost savings",
-        " This demo data shows full platform capabilities - backend will restore automatically"
-      ]
-    };
+    const formData = new FormData();
+    formData.append('file', file);
     
-    setData(mockData);
-    setError(" Using demo data - backend is sleeping (Render free tier spins down after 15min inactivity)");
-    setLoading(false);
-  }
-};
+    try {
+      console.log(` Uploading file: ${file.name}`);
+      
+      const response = await axios.post(`${API_URL}/upload-data`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        timeout: 30000 // 30 second timeout for large files
+      });
+      
+      console.log(' Upload response:', response.data);
+      
+      if (response.data.status === 'success') {
+        setData(response.data.dashboard);
+        setError(null);
+        setLoading(false);
+        setUploadSuccess(` Successfully loaded ${response.data.dashboard.data_points} data points from ${file.name}`);
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => setUploadSuccess(null), 5000);
+      } else {
+        throw new Error(response.data.error || 'Upload failed');
+      }
+      
+    } catch (error) {
+      console.error(' Upload failed:', error);
+      
+      let errorMsg = 'Failed to upload file. ';
+      
+      if (error.response?.data?.error) {
+        errorMsg += error.response.data.error;
+        if (error.response.data.help) {
+          errorMsg += '\n\n' + error.response.data.help;
+        }
+      } else if (error.code === 'ECONNABORTED') {
+        errorMsg += 'Upload timeout. File might be too large.';
+      } else {
+        errorMsg += error.message;
+      }
+      
+      alert(errorMsg);
+      setError(errorMsg);
+      setUploadSuccess(null);
+      setLoading(false);
+    } finally {
+      setUploadingFile(false);
+      event.target.value = null; // Reset file input
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -194,10 +194,30 @@ export default function Dashboard() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
-      console.log('PDF exported successfully!');
+      console.log(' PDF exported successfully!');
     } catch (error) {
       console.error(' Export failed:', error);
       alert('Failed to export report. Please try again.');
+    }
+  };
+
+  const wakeBackend = async () => {
+    setLoading(true);
+    setError(" Waking up backend... This may take 30-60 seconds...");
+    
+    try {
+      const response = await axios.get(`${API_URL}/health`, { 
+        timeout: 90000 // 90 second timeout for wake-up
+      });
+      
+      if (response.data.status === "healthy") {
+        setError(null);
+        alert(" Backend is awake! Refreshing dashboard...");
+        fetchData(); // Refresh with real data
+      }
+    } catch (error) {
+      setError(" Backend is still waking up. Wait 30 seconds and click 'Refresh Dashboard' again.");
+      setLoading(false);
     }
   };
 
@@ -268,33 +288,13 @@ export default function Dashboard() {
     },
   };
 
-  const wakeBackend = async () => {
-  setLoading(true);
-  setError(" Waking up backend... This may take 30-60 seconds...");
-  
-  try {
-    const response = await axios.get(`${API_URL}/health`, { 
-      timeout: 90000 // 90 second timeout for wake-up
-    });
-    
-    if (response.data.status === "healthy") {
-      setError(null);
-      alert(" Backend is awake! Refreshing dashboard...");
-      fetchData(); // Refresh with real data
-    }
-  } catch (error) {
-    setError(" Backend is still waking up. Wait 30 seconds and click 'Refresh Dashboard' again.");
-    setLoading(false);
-  }
-};
-
   return (
     <div className="dashboard-container">
       {/* Hero Section */}
       <div className="hero-section">
         <div className="hero-header">
           <div>
-            <h1 className="hero-title"> GreenGap Intelligence</h1>
+            <h1 className="hero-title">🌱 GreenGap Intelligence</h1>
             <p className="hero-subtitle">
               Detecting Rebound Effects & Hidden Climate Loss
             </p>
@@ -443,34 +443,31 @@ export default function Dashboard() {
       {/* AI CHAT ASSISTANT */}
       <AIChat language={language} apiUrl={API_URL} />
 
-      {/* AI CHAT ASSISTANT */}
-<AIChat language={language} apiUrl={API_URL} />
-
-{/* CSV UPLOAD SECTION - Add this */}
-<div className="upload-section">
-  {uploadSuccess && (
-    <div className="upload-success-toast">
-      {uploadSuccess}
-    </div>
-  )}
-  
-  <div className="upload-btn-wrapper">
-    <button 
-      className={`floating-upload-btn ${uploadingFile ? 'uploading' : ''}`}
-      title="Upload CSV Data"
-      aria-label="Upload real energy consumption data"
-      disabled={uploadingFile}
-    >
-      {uploadingFile ? '⏳' : '📊'}
-    </button>
-    <input 
-      type="file" 
-      accept=".csv"
-      onChange={handleFileUpload}
-      disabled={uploadingFile}
-    />
-  </div>
-</div>
+      {/* CSV UPLOAD SECTION */}
+      <div className="upload-section">
+        {uploadSuccess && (
+          <div className="upload-success-toast">
+            {uploadSuccess}
+          </div>
+        )}
+        
+        <div className="upload-btn-wrapper">
+          <button 
+            className={`floating-upload-btn ${uploadingFile ? 'uploading' : ''}`}
+            title="Upload CSV Data"
+            aria-label="Upload real energy consumption data"
+            disabled={uploadingFile}
+          >
+            {uploadingFile ? '⏳' : '📊'}
+          </button>
+          <input 
+            type="file" 
+            accept=".csv"
+            onChange={handleFileUpload}
+            disabled={uploadingFile}
+          />
+        </div>
+      </div>
     </div>
   );
 }

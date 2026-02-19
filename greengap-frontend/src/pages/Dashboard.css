@@ -647,52 +647,173 @@ body {
   padding-top: 0.5rem;
 }
 
-/* Floating Buttons */
-.floating-refresh-btn,
-.floating-export-btn {
+/* ===========================
+   FLOATING ACTION BUTTONS
+   =========================== */
+
+/* Refresh Button - BOTTOM */
+.floating-refresh-btn {
   position: fixed;
-  right: 2rem;
-  width: 70px;
-  height: 70px;
-  color: white;
-  border: none;
+  bottom: 25px;
+  right: 30px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
-  font-size: 2.2rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border: none;
+  color: white;
+  font-size: 22px;
   cursor: pointer;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
   z-index: 997;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.floating-refresh-btn {
-  bottom: 100px;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-}
-
 .floating-refresh-btn:hover {
   transform: scale(1.15) rotate(180deg);
-  box-shadow: 0 12px 35px var(--shadow-glow);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
 }
 
-.floating-export-btn {
-  bottom: 190px;
-  background: linear-gradient(135deg, var(--color-accent), #6366f1);
-}
-
-.floating-export-btn:hover {
-  transform: scale(1.15) rotate(-15deg);
-  box-shadow: 0 12px 35px rgba(139, 92, 246, 0.5);
-}
-
-.floating-export-btn:active,
 .floating-refresh-btn:active {
   transform: scale(0.95);
 }
 
-/* Mobile Responsive */
+/* Export PDF Button - SECOND FROM BOTTOM */
+.floating-export-btn {
+  position: fixed;
+  bottom: 95px;
+  right: 30px;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  border: none;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+  z-index: 997;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.floating-export-btn:hover {
+  transform: scale(1.15);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+}
+
+.floating-export-btn:active {
+  transform: scale(0.95);
+}
+
+/* ===========================
+   CSV UPLOAD BUTTON
+   =========================== */
+
+.upload-section {
+  position: fixed;
+  bottom: 165px;
+  right: 30px;
+  z-index: 998;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.upload-btn-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-btn-wrapper input[type=file] {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.floating-upload-btn {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.floating-upload-btn:hover {
+  transform: scale(1.15);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+}
+
+.floating-upload-btn:active {
+  transform: scale(0.95);
+}
+
+.floating-upload-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.floating-upload-btn.uploading {
+  animation: pulse-upload 1.5s infinite;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+@keyframes pulse-upload {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+  }
+}
+
+.upload-success-toast {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  font-size: 13px;
+  max-width: 300px;
+  text-align: center;
+  animation: slideInRight 0.3s ease;
+  font-weight: 500;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ===========================
+   MOBILE RESPONSIVE
+   =========================== */
+
 @media (max-width: 1200px) {
   .charts-section {
     grid-template-columns: 1fr;
@@ -760,20 +881,33 @@ body {
     gap: 1.5rem;
   }
 
+  /* Mobile Button Positioning */
+  .floating-refresh-btn,
   .floating-export-btn,
+  .floating-upload-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+    right: 20px;
+  }
+
   .floating-refresh-btn {
-    right: 1rem;
-    width: 60px;
-    height: 60px;
-    font-size: 1.8rem;
+    bottom: 20px;
   }
 
   .floating-export-btn {
-    bottom: 170px;
+    bottom: 85px;
   }
 
-  .floating-refresh-btn {
-    bottom: 90px;
+  .upload-section {
+    bottom: 150px;
+    right: 20px;
+  }
+
+  .upload-success-toast {
+    max-width: 250px;
+    font-size: 12px;
+    padding: 10px 16px;
   }
 }
 
@@ -794,136 +928,27 @@ body {
   .rec-number {
     align-self: flex-start;
   }
-}
 
-/* ===========================
-   CSV UPLOAD BUTTON STYLES
-   =========================== */
-
-.upload-section {
-  position: fixed;
-  bottom: 180px;
-  right: 30px;
-  z-index: 998;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: flex-end;
-}
-
-.upload-btn-wrapper {
-  position: relative;
-  overflow: hidden;
-}
-
-.upload-btn-wrapper input[type=file] {
-  position: absolute;
-  left: 0;
-  top: 0;
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-}
-
-.floating-upload-btn {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border: none;
-  color: white;
-  font-size: 28px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.floating-upload-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
-}
-
-.floating-upload-btn:active {
-  transform: scale(0.95);
-}
-
-.floating-upload-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.floating-upload-btn.uploading {
-  animation: pulse-upload 1.5s infinite;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
-
-@keyframes pulse-upload {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
-  }
-  50% {
-    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
-  }
-}
-
-.upload-success-toast {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-  padding: 12px 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-  font-size: 13px;
-  max-width: 300px;
-  text-align: center;
-  animation: slideInRight 0.3s ease;
-  font-weight: 500;
-}
-
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(50px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Mobile responsive */
-@media (max-width: 768px) {
-  .upload-section {
-    bottom: 160px;
-    right: 20px;
-  }
-  
+  /* Extra Small Screens */
+  .floating-refresh-btn,
+  .floating-export-btn,
   .floating-upload-btn {
-    width: 52px;
-    height: 52px;
-    font-size: 24px;
-  }
-  
-  .upload-success-toast {
-    max-width: 250px;
-    font-size: 12px;
-    padding: 10px 16px;
-  }
-}
-
-@media (max-width: 480px) {
-  .upload-section {
-    bottom: 140px;
+    width: 46px;
+    height: 46px;
+    font-size: 18px;
     right: 15px;
   }
-  
-  .floating-upload-btn {
-    width: 48px;
-    height: 48px;
-    font-size: 22px;
+
+  .floating-refresh-btn {
+    bottom: 15px;
+  }
+
+  .floating-export-btn {
+    bottom: 75px;
+  }
+
+  .upload-section {
+    bottom: 135px;
+    right: 15px;
   }
 }
