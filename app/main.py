@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 import random
 from datetime import datetime
@@ -12,6 +12,8 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.units import inch
 from io import BytesIO
 from fastapi.responses import StreamingResponse
+import pandas as pd
+import io as iolib
 
 # Load environment variables
 load_dotenv()
@@ -27,8 +29,8 @@ except ImportError:
 
 app = FastAPI(
     title="GreenGap API - Powered by Pathway AI + Gemini", 
-    version="2.0.0",
-    description="AI-powered sustainability analytics with Pathway RAG + Google Gemini"
+    version="2.1.0",
+    description="AI-powered sustainability analytics with Pathway RAG + Google Gemini + Real Data Support"
 )
 
 # Configure NEW Gemini API
@@ -54,8 +56,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://green-gap-beta.vercel.app",  # Your actual Vercel URL
-        "https://*.vercel.app",  # All Vercel deployments
+        "https://green-gap-beta.vercel.app",
+        "https://*.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -66,11 +68,19 @@ app.add_middleware(
 def read_root():
     return {
         "message": "GreenGap backend running with Pathway AI + Google Gemini",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "ai_powered": True,
         "gemini_active": gemini_client is not None,
-        "tech_stack": ["FastAPI", "Pathway", "RAG", "Google Gemini"],
-        "features": ["Real-time analytics", "AI recommendations", "Rebound detection", "Conversational AI", "PDF Export", "Multi-Language"]
+        "tech_stack": ["FastAPI", "Pathway", "RAG", "Google Gemini", "pandas"],
+        "features": [
+            "Real-time analytics", 
+            "AI recommendations", 
+            "Rebound detection", 
+            "Conversational AI", 
+            "PDF Export", 
+            "Multi-Language",
+            "CSV Upload Support"
+        ]
     }
 
 @app.get("/analyze")
@@ -164,6 +174,234 @@ def analyze():
         }
     }
 
+
+@app.post("/upload-data")
+async def upload_real_data(file: UploadFile = File(...)):
+    """
+    Upload CSV with real energy consumption data
+    
+    Required CSV columns:
+    - date: Date in YYYY-MM-DD format
+    - baseline_kwh: Baseline energy consumption (before efficiency improvements)
+    - actual_kwh: Actual energy consumption (after efficiency improvements)
+    - efficiency_improvement: Efficiency improvement percentage (0.0 to 1.0)
+    
+    Example CSV:
+    date,baseline_kwh,actual_kwh,efficiency_improvement
+    2026-02-01,450,375,0.30
+    2026-02-02,445,370,0.30
+    """
+    try:
+        print(f" Received file: {file.filename}")
+        
+        # Read CSV file
+        contents = await file.read()
+        df = pd.read_csv(iolib.BytesIO(contents))
+        
+        print(f" CSV loaded with {len(df)} rows")
+        print(f" Columns: {df.columns.tolist()}")
+        
+        # Validate required columns
+        required_cols = ['date', 'baseline_kwh', 'actual_kwh', 'efficiency_improvement']
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        
+        if missing_cols:
+            return {
+                "error": f"Missing required columns: {missing_cols}",
+                "required": required_cols,
+                "found": df.columns.tolist(),
+                "help": "CSV should have: date, baseline_kwh, actual_kwh, efficiency_improvement"
+            }
+        
+        # Convert date column to datetime
+        df['date'] = pd.to_datetime(df['date'])
+        
+        # Calculate expected consumption based on efficiency improvement
+        df['expected_kwh'] = df['baseline_kwh'] * (1 - df['efficiency_improvement'])
+        
+        # Calculate actual savings vs expected savings
+        df['actual_savings'] = df['baseline_kwh'] - df['actual_kwh']
+        df['expected_savings'] = df['baseline_kwh'] - df['expected_kwh']
+        df['rebound_effect'] = df['actual_kwh'] - df['expected_kwh']
+        
+        # Calculate rebound percentage
+        total_expected_savings = df['expected_savings'].sum()
+        total_rebound = df['rebound_effect'].sum()
+        rebound_percentage = (total_rebound / total_expected_savings * 100) if total_expected_savings > 0 else 0
+        
+        # Determine rebound level
+        if rebound_percentage > 60:
+            rebound_level = "HIGH"
+        elif rebound_percentage > 30:
+            rebound_level = "MEDIUM"
+        else:
+            rebound_level = "LOW"
+        
+        # Calculate efficiency score (how much better than baseline)
+        avg_baseline = df['baseline_kwh'].mean()
+        avg_actual = df['actual_kwh'].mean()
+        efficiency_score = ((avg_baseline - avg_actual) / avg_baseline * 100) if avg_baseline > 0 else 0
+        
+        # Calculate behavior score (100 - rebound percentage)
+        behavior_score = max(0, 100 - rebound_percentage)
+        
+        # Calculate sustainability index (weighted average)
+        sustainability_index = (efficiency_score * 0.6 + behavior_score * 0.4)
+        
+        # Calculate CO2 saved (assuming 0.5 kg CO2 per kWh)
+        co2_conversion_factor = 0.5
+        total_co2_saved = df['actual_savings'].sum() * co2_conversion_factor
+        corrected_co2 = df['expected_savings'].sum() * co2_conversion_factor
+        
+        # Format dates for chart labels
+        chart_labels = df['date'].dt.strftime('%Y-%m-%d').tolist()
+        
+        # Generate AI recommendations using Gemini
+        recommendations = await generate_real_data_recommendations(
+            rebound_level=rebound_level,
+            rebound_percentage=rebound_percentage,
+            efficiency_score=efficiency_score,
+            behavior_score=behavior_score,
+            total_rows=len(df)
+        )
+        
+        # Prepare dashboard data
+        dashboard_data = {
+            "analysis_id": f"REAL-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+            "sustainability_index": round(sustainability_index, 1),
+            "rebound_level": rebound_level,
+            "rebound_percentage": int(rebound_percentage),
+            "corrected_projection": round(corrected_co2, 2),
+            "ai_engine": "Pathway RAG + Gemini 2.5 (Real Data Analysis)",
+            "knowledge_docs_used": 10,
+            "data_source": "CSV Upload",
+            "data_points": len(df),
+            
+            "summary_cards": {
+                "sustainability_index": str(round(sustainability_index, 1)),
+                "co2_saved": str(round(total_co2_saved, 1)),
+                "efficiency_score": str(round(efficiency_score, 1)),
+                "behavior_score": str(round(behavior_score, 1))
+            },
+            
+            "emissions_chart": {
+                "labels": chart_labels,
+                "baseline": df['baseline_kwh'].round(1).tolist(),
+                "expected": df['expected_kwh'].round(1).tolist(),
+                "actual": df['actual_kwh'].round(1).tolist()
+            },
+            
+            "behavior_insights": {
+                "behavior_reason": f"Real data analysis from {len(df)} data points shows {rebound_level} rebound effect. "
+                                 f"Despite {df['efficiency_improvement'].mean()*100:.0f}% efficiency improvements, "
+                                 f"actual consumption is {rebound_percentage:.1f}% higher than expected due to behavioral changes. "
+                                 f"Total CO₂ saved: {total_co2_saved:.1f} kg, but corrected projection shows only "
+                                 f"{corrected_co2:.1f} kg when accounting for rebound effects."
+            },
+            
+            "recommendations": recommendations
+        }
+        
+        print(f" Analysis complete: {rebound_level} rebound, {sustainability_index:.1f} sustainability index")
+        
+        return {
+            "status": "success",
+            "message": f"Successfully analyzed {len(df)} data points from {file.filename}",
+            "dashboard": dashboard_data
+        }
+        
+    except pd.errors.EmptyDataError:
+        return {"error": "CSV file is empty"}
+    except pd.errors.ParserError:
+        return {"error": "Invalid CSV format. Please check your file."}
+    except Exception as e:
+        print(f" Error processing CSV: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "error": f"Error processing file: {str(e)}",
+            "help": "Make sure CSV has columns: date, baseline_kwh, actual_kwh, efficiency_improvement"
+        }
+
+
+async def generate_real_data_recommendations(
+    rebound_level: str,
+    rebound_percentage: float,
+    efficiency_score: float,
+    behavior_score: float,
+    total_rows: int
+):
+    """
+    Generate AI recommendations based on real data analysis using Gemini
+    """
+    try:
+        prompt = f"""You are a sustainability expert analyzing real energy consumption data.
+
+Analysis Results:
+- Rebound Effect Level: {rebound_level}
+- Rebound Percentage: {rebound_percentage:.1f}%
+- Efficiency Score: {efficiency_score:.1f}%
+- Behavior Score: {behavior_score:.1f}%
+- Data Points Analyzed: {total_rows}
+
+Based on this REAL DATA analysis, provide 5 specific, actionable recommendations to:
+1. Reduce the rebound effect
+2. Improve behavior score
+3. Maximize actual CO₂ savings
+4. Prevent efficiency loss
+
+Format each recommendation as a complete sentence starting with an action verb.
+Focus on evidence-based interventions proven to work."""
+
+        if gemini_client:
+            response = gemini_client.models.generate_content(
+                model='models/gemini-2.0-flash-exp',
+                contents=prompt
+            )
+            
+            # Parse recommendations
+            recommendations = []
+            for line in response.text.split('\n'):
+                line = line.strip()
+                # Remove numbering and bullet points
+                line = line.lstrip('0123456789.-*• ')
+                if line and len(line) > 20:
+                    recommendations.append(f"🎯 {line}")
+            
+            # Ensure we have 5 recommendations
+            if len(recommendations) >= 5:
+                return recommendations[:5]
+        
+    except Exception as e:
+        print(f" Gemini recommendation generation failed: {e}")
+    
+    # Fallback recommendations based on rebound level
+    if rebound_level == "HIGH":
+        return [
+            " URGENT: Implement strict consumption caps to prevent further efficiency loss",
+            " Deploy automated controls to override manual adjustments during peak hours",
+            " Launch immediate behavioral intervention program with daily monitoring",
+            " Reduce comfort settings by 10% to counteract overconsumption patterns",
+            " Conduct emergency energy audit to identify root causes of high rebound"
+        ]
+    elif rebound_level == "MEDIUM":
+        return [
+            " Implement smart scheduling to optimize usage patterns and reduce rebound",
+            " Deploy real-time consumption dashboards for increased user awareness",
+            " Launch targeted behavioral campaigns focusing on efficiency retention",
+            " Set soft consumption limits with alerts at 80% threshold",
+            " Conduct bi-weekly reviews to track and adjust behavioral interventions"
+        ]
+    else:  # LOW
+        return [
+            " Maintain current behavioral patterns - excellent efficiency retention",
+            " Share success stories to reinforce positive consumption habits",
+            " Monitor for early warning signs of emerging rebound effects",
+            " Expand efficiency improvements to additional systems",
+            " Document best practices for replication across other facilities"
+        ]
+
+
 @app.get("/health")
 def health_check():
     return {
@@ -173,8 +411,10 @@ def health_check():
         "rag_status": "operational",
         "gemini_status": "active" if gemini_client else "fallback_mode",
         "knowledge_base_size": len(rag_system.knowledge_docs),
+        "csv_upload_enabled": True,
         "timestamp": datetime.now().isoformat()
     }
+
 
 @app.post("/chat")
 async def chat_with_ai(question: dict):
@@ -338,7 +578,7 @@ If unrelated to sustainability, redirect to: energy efficiency, rebound effects,
             
             # Use NEW API with correct model name
             response = gemini_client.models.generate_content(
-                model='models/gemini-2.5-flash',
+                model='models/gemini-2.0-flash-exp',
                 contents=prompt
             )
             
@@ -395,6 +635,7 @@ I'll provide comprehensive, actionable answers!""",
         "timestamp": datetime.now().isoformat()
     }
 
+
 @app.post("/export-report")
 async def export_report(data: dict):
     """Generate PDF sustainability report with professional formatting"""
@@ -422,7 +663,7 @@ async def export_report(data: dict):
     
     # Timestamp
     timestamp = Paragraph(
-        f"<b>Generated:</b> {datetime.now().strftime('%B %d, %Y at %I:%M %p')}",
+        f"<b>Generated:</b> {datetime.now().strftime('%B %d, %Y at %I:%M %p UTC')}",
         styles['Normal']
     )
     elements.append(timestamp)
