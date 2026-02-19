@@ -32,6 +32,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [language, setLanguage] = useState('en');
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(null);
 
   const fetchData = async () => {
   try {
@@ -44,6 +46,74 @@ export default function Dashboard() {
     setLoading(false);
   } catch (error) {
     console.error(" Backend unavailable, using demo data:", error);
+
+    const handleFileUpload = async (event) => {
+  const file = event.target.files[0];
+  
+  if (!file) return;
+  
+  // Validate file type
+  if (!file.name.endsWith('.csv')) {
+    alert(' Please upload a CSV file');
+    return;
+  }
+  
+  setUploadingFile(true);
+  setUploadSuccess(null);
+  setError(null);
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  try {
+    console.log(` Uploading file: ${file.name}`);
+    
+    const response = await axios.post(`${API_URL}/upload-data`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 30000 // 30 second timeout for large files
+    });
+    
+    console.log(' Upload response:', response.data);
+    
+    if (response.data.status === 'success') {
+      setData(response.data.dashboard);
+      setError(null);
+      setLoading(false);
+      setUploadSuccess(` Successfully loaded ${response.data.dashboard.data_points} data points from ${file.name}`);
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setUploadSuccess(null), 5000);
+    } else {
+      throw new Error(response.data.error || 'Upload failed');
+    }
+    
+  } catch (error) {
+    console.error(' Upload failed:', error);
+    
+    let errorMsg = 'Failed to upload file. ';
+    
+    if (error.response?.data?.error) {
+      errorMsg += error.response.data.error;
+      if (error.response.data.help) {
+        errorMsg += '\n\n' + error.response.data.help;
+      }
+    } else if (error.code === 'ECONNABORTED') {
+      errorMsg += 'Upload timeout. File might be too large.';
+    } else {
+      errorMsg += error.message;
+    }
+    
+    alert(errorMsg);
+    setError(errorMsg);
+    setUploadSuccess(null);
+    setLoading(false);
+  } finally {
+    setUploadingFile(false);
+    event.target.value = null; // Reset file input
+  }
+};
     
     // FALLBACK: Use mock data if backend is down
     const mockData = {
@@ -288,7 +358,7 @@ export default function Dashboard() {
       {/* Rebound Effect Alert */}
       <div className={`rebound-alert rebound-${data.rebound_level.toLowerCase()}`}>
         <div className="alert-header">
-          <h2>⚠️ Rebound Effect Detected</h2>
+          <h2> Rebound Effect Detected</h2>
           <span className={`rebound-badge ${data.rebound_level.toLowerCase()}`}>
             {data.rebound_level}
           </span>
@@ -315,14 +385,14 @@ export default function Dashboard() {
       {/* Charts Section */}
       <div className="charts-section">
         <div className="chart-card">
-          <h2>📈 Emissions Over Time</h2>
+          <h2> Emissions Over Time</h2>
           <div className="chart-container">
             <Line data={chartData} options={chartOptions} />
           </div>
         </div>
 
         <div className="insights-card">
-          <h2>💡 Behavior Insights</h2>
+          <h2> Behavior Insights</h2>
           <p className="insight-text">{data.behavior_insights.behavior_reason}</p>
           <div className="insight-metrics">
             <div className="metric">
@@ -339,7 +409,7 @@ export default function Dashboard() {
 
       {/* Recommendations */}
       <div className="recommendations-section">
-        <h2>🤖 Pathway AI Recommendations</h2>
+        <h2>Pathway AI Recommendations</h2>
         <ul className="recommendations-list">
           {data.recommendations.map((rec, index) => (
             <li key={index} className="recommendation-item">
@@ -372,6 +442,35 @@ export default function Dashboard() {
 
       {/* AI CHAT ASSISTANT */}
       <AIChat language={language} apiUrl={API_URL} />
+
+      {/* AI CHAT ASSISTANT */}
+<AIChat language={language} apiUrl={API_URL} />
+
+{/* CSV UPLOAD SECTION - Add this */}
+<div className="upload-section">
+  {uploadSuccess && (
+    <div className="upload-success-toast">
+      {uploadSuccess}
+    </div>
+  )}
+  
+  <div className="upload-btn-wrapper">
+    <button 
+      className={`floating-upload-btn ${uploadingFile ? 'uploading' : ''}`}
+      title="Upload CSV Data"
+      aria-label="Upload real energy consumption data"
+      disabled={uploadingFile}
+    >
+      {uploadingFile ? '⏳' : '📊'}
+    </button>
+    <input 
+      type="file" 
+      accept=".csv"
+      onChange={handleFileUpload}
+      disabled={uploadingFile}
+    />
+  </div>
+</div>
     </div>
   );
 }
