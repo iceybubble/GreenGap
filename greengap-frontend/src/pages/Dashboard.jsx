@@ -96,9 +96,12 @@ export default function Dashboard() {
     
     if (!file) return;
     
-    // Validate file type
-    if (!file.name.endsWith('.csv')) {
-      alert(' Please upload a CSV file');
+    // Validate file type - SUPPORTS MULTIPLE FORMATS
+    const allowedExtensions = ['.csv', '.xlsx', '.xls', '.json'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    
+    if (!allowedExtensions.includes(fileExtension)) {
+      alert(' Please upload a CSV, Excel (.xlsx, .xls), or JSON file\n\nSupported formats:\n• CSV (.csv)\n• Excel (.xlsx, .xls)\n• JSON (.json)');
       return;
     }
     
@@ -110,7 +113,7 @@ export default function Dashboard() {
     formData.append('file', file);
     
     try {
-      console.log(` Uploading file: ${file.name}`);
+      console.log(` Uploading ${fileExtension} file: ${file.name}`);
       
       const response = await axios.post(`${API_URL}/upload-data`, formData, {
         headers: {
@@ -125,7 +128,12 @@ export default function Dashboard() {
         setData(response.data.dashboard);
         setError(null);
         setLoading(false);
-        setUploadSuccess(` Successfully loaded ${response.data.dashboard.data_points} data points from ${file.name}`);
+        
+        // Show format in success message
+        const format = response.data.format || 'file';
+        const dataPoints = response.data.dashboard.data_points || 0;
+        
+        setUploadSuccess(` Successfully loaded ${dataPoints} data points from ${file.name} (${format})`);
         
         // Clear success message after 5 seconds
         setTimeout(() => setUploadSuccess(null), 5000);
@@ -140,8 +148,17 @@ export default function Dashboard() {
       
       if (error.response?.data?.error) {
         errorMsg += error.response.data.error;
+        
         if (error.response.data.help) {
           errorMsg += '\n\n' + error.response.data.help;
+        }
+        
+        if (error.response.data.supported_formats) {
+          errorMsg += '\n\nSupported formats: ' + error.response.data.supported_formats.join(', ');
+        }
+        
+        if (error.response.data.example_csv) {
+          errorMsg += '\n\nExample CSV:\n' + error.response.data.example_csv;
         }
       } else if (error.code === 'ECONNABORTED') {
         errorMsg += 'Upload timeout. File might be too large.';
@@ -409,7 +426,7 @@ export default function Dashboard() {
 
       {/* Recommendations */}
       <div className="recommendations-section">
-        <h2>Pathway AI Recommendations</h2>
+        <h2> Pathway AI Recommendations</h2>
         <ul className="recommendations-list">
           {data.recommendations.map((rec, index) => (
             <li key={index} className="recommendation-item">
@@ -443,7 +460,7 @@ export default function Dashboard() {
       {/* AI CHAT ASSISTANT */}
       <AIChat language={language} apiUrl={API_URL} />
 
-      {/* CSV UPLOAD SECTION */}
+      {/* DATA UPLOAD SECTION - MULTI-FORMAT SUPPORT */}
       <div className="upload-section">
         {uploadSuccess && (
           <div className="upload-success-toast">
@@ -454,15 +471,15 @@ export default function Dashboard() {
         <div className="upload-btn-wrapper">
           <button 
             className={`floating-upload-btn ${uploadingFile ? 'uploading' : ''}`}
-            title="Upload CSV Data"
-            aria-label="Upload real energy consumption data"
+            title="Upload Data (CSV, Excel, JSON)"
+            aria-label="Upload energy consumption data in CSV, Excel, or JSON format"
             disabled={uploadingFile}
           >
             {uploadingFile ? '⏳' : '📊'}
           </button>
           <input 
             type="file" 
-            accept=".csv"
+            accept=".csv,.xlsx,.xls,.json"
             onChange={handleFileUpload}
             disabled={uploadingFile}
           />

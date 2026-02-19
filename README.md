@@ -136,6 +136,28 @@ When organizations invest in energy-efficient technologies, they expect substant
 
 ---
 
+## Supported Data Formats
+
+GreenGap accepts energy consumption data in multiple formats for real-time analysis:
+
+### Supported Formats:
+
+| Format | Extension | Description | Best For |
+|--------|-----------|-------------|----------|
+| **CSV** | `.csv` | Comma-separated values | Universal compatibility, hackathons |
+| **Excel** | `.xlsx`, `.xls` | Microsoft Excel spreadsheets | Business users, existing data |
+| **JSON** | `.json` | JavaScript Object Notation | API integration, web apps |
+
+### Required Fields:
+
+All formats must include these 4 columns/fields:
+
+- **date**: Date in `YYYY-MM-DD` format (e.g., `2026-02-01`)
+- **baseline_kwh**: Baseline energy consumption before efficiency improvements (kWh)
+- **actual_kwh**: Actual energy consumption after improvements (kWh)
+- **efficiency_improvement**: Expected efficiency improvement as decimal (0.0 to 1.0, where `0.30` = 30%)
+
+
 ##  Tech Stack
 
 ### **Frontend**
