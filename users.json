@@ -6,5 +6,21 @@
     "hashed_password": null,
     "auth_provider": "google",
     "created_at": "2026-03-02T06:19:17.742456"
+  },
+  "test@example.com": {
+    "email": "test@example.com",
+    "name": "Test User",
+    "hashed_password": "$2b$12$d17vYeD14/sYt2C3xeHlDu8NQSm8qQV26xeU2L0rwblU7ztj4UiAG",
+    "created_at": "2026-03-02T06:38:19.404602",
+    "picture": null,
+    "auth_provider": "email"
+  },
+  "prachikathait603@gmail.com": {
+    "email": "prachikathait603@gmail.com",
+    "name": "Prachi Kathait",
+    "hashed_password": "$2b$12$zuQxdBYzvAYQiHGJC1PoAO9QJBABmuvKxvBpDEofV4BbfRf2beXWe",
+    "created_at": "2026-03-02T06:50:29.938729",
+    "picture": null,
+    "auth_provider": "email"
   }
 }

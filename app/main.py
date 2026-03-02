@@ -60,19 +60,25 @@ else:
         print(" google-genai library not available")
 
 # CORS middleware
+# CORS Configuration - FIXED
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "https://green-gap-beta.vercel.app",
-        "https://*.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
+# Handle preflight requests
+@app.options("/{path:path}")
+async def options_handler(path: str):
+    return {"message": "OK"}
 # ==================== ROOT ENDPOINT ====================
 
 @app.get("/")
