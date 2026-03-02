@@ -137,3 +137,65 @@
     padding: 0.4rem 0.8rem;
   }
 }
+
+/* Auth Buttons in Navigation */
+.nav-link.login-btn,
+.nav-link.signup-btn {
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.nav-link.login-btn {
+  background: transparent;
+  border: 2px solid #4ade80;
+  color: #1a5f3f;
+}
+
+.nav-link.login-btn:hover {
+  background: #4ade80;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.nav-link.signup-btn {
+  background: linear-gradient(135deg, #1a5f3f 0%, #4ade80 100%);
+  color: white;
+  border: none;
+}
+
+.nav-link.signup-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 95, 63, 0.3);
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .nav-link.login-btn {
+  border-color: #4ade80;
+  color: #4ade80;
+}
+
+[data-theme="dark"] .nav-link.login-btn:hover {
+  background: #4ade80;
+  color: #1f2937;
+}
+
+/* User Profile in Navigation */
+.navbar .user-profile {
+  margin-left: 15px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .nav-links {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .nav-link.login-btn,
+  .nav-link.signup-btn {
+    width: 100%;
+    text-align: center;
+  }
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useTheme } from "../context/ThemeContext";
+import { useTheme } from "../contexts/ThemeContext";
 import "./Settings.css";
 
 export default function Settings() {
