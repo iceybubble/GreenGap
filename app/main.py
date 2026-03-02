@@ -1,7 +1,8 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.pathway_pipeline import rag_system
 import os
 from dotenv import load_dotenv
@@ -14,6 +15,14 @@ from io import BytesIO
 from fastapi.responses import StreamingResponse
 import pandas as pd
 import io as iolib
+
+# AUTH IMPORTS
+from app.auth import (
+    UserCreate, UserLogin, User, Token,
+    get_password_hash, authenticate_user, create_access_token,
+    get_current_user, load_users, save_users, ACCESS_TOKEN_EXPIRE_MINUTES,
+    verify_google_token
+)
 
 # Load environment variables
 load_dotenv()
@@ -29,8 +38,8 @@ except ImportError:
 
 app = FastAPI(
     title="GreenGap API - Powered by Pathway AI + Gemini", 
-    version="2.2.0",
-    description="AI-powered sustainability analytics with Pathway RAG + Google Gemini + Multi-Format Data Support"
+    version="2.3.0",
+    description="AI-powered sustainability analytics with Authentication + Pathway RAG + Google Gemini + Multi-Format Data Support"
 )
 
 # Configure NEW Gemini API
@@ -64,15 +73,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ==================== ROOT ENDPOINT ====================
+
 @app.get("/")
 def read_root():
     return {
-        "message": "GreenGap backend running with Pathway AI + Google Gemini",
-        "version": "2.2.0",
+        "message": "GreenGap backend running with Pathway AI + Google Gemini + Authentication",
+        "version": "2.3.0",
         "ai_powered": True,
+        "auth_enabled": True,
         "gemini_active": gemini_client is not None,
-        "tech_stack": ["FastAPI", "Pathway", "RAG", "Google Gemini", "pandas", "openpyxl"],
+        "tech_stack": ["FastAPI", "Pathway", "RAG", "Google Gemini", "JWT Auth", "pandas", "openpyxl"],
         "features": [
+            "User Authentication (Email + Google OAuth)",
             "Real-time analytics", 
             "AI recommendations", 
             "Rebound detection", 
@@ -81,8 +94,142 @@ def read_root():
             "Multi-Language",
             "Multi-Format Upload (CSV, Excel, JSON)"
         ],
-        "supported_formats": ["CSV (.csv)", "Excel (.xlsx, .xls)", "JSON (.json)"]
+        "supported_formats": ["CSV (.csv)", "Excel (.xlsx, .xls)", "JSON (.json)"],
+        "auth_methods": ["Email/Password", "Google OAuth 2.0"]
     }
+
+# ==================== AUTHENTICATION ENDPOINTS ====================
+
+@app.post("/signup", response_model=Token)
+async def signup(user_data: UserCreate):
+    """Register a new user with email and password"""
+    users = load_users()
+    
+    # Check if user already exists
+    if user_data.email in users:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered"
+        )
+    
+    # Create new user
+    hashed_password = get_password_hash(user_data.password)
+    new_user = {
+        "email": user_data.email,
+        "name": user_data.name,
+        "hashed_password": hashed_password,
+        "created_at": datetime.utcnow().isoformat(),
+        "picture": None,
+        "auth_provider": "email"
+    }
+    
+    users[user_data.email] = new_user
+    save_users(users)
+    
+    # Create access token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user_data.email},
+        expires_delta=access_token_expires
+    )
+    
+    print(f" New user registered: {user_data.email}")
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": User(
+            email=new_user["email"],
+            name=new_user["name"],
+            created_at=new_user["created_at"],
+            picture=None
+        )
+    }
+
+@app.post("/login", response_model=Token)
+async def login(user_data: UserLogin):
+    """Login user with email and password"""
+    user = authenticate_user(user_data.email, user_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect email or password"
+        )
+    
+    # Create access token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user["email"]},
+        expires_delta=access_token_expires
+    )
+    
+    print(f" User logged in: {user['email']}")
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": User(
+            email=user["email"],
+            name=user["name"],
+            created_at=user["created_at"],
+            picture=user.get("picture")
+        )
+    }
+
+@app.post("/auth/google", response_model=Token)
+async def google_auth(token: dict):
+    """
+    Authenticate user with Google OAuth token
+    Expected body: {"token": "google_oauth_token"}
+    """
+    google_token = token.get("token")
+    if not google_token:
+        raise HTTPException(
+            status_code=400,
+            detail="Google token is required"
+        )
+    
+    # Verify token with Google
+    user = await verify_google_token(google_token)
+    
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid Google token"
+        )
+    
+    # Create access token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user["email"]},
+        expires_delta=access_token_expires
+    )
+    
+    print(f" User logged in via Google: {user['email']}")
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": User(
+            email=user["email"],
+            name=user["name"],
+            created_at=user["created_at"],
+            picture=user.get("picture")
+        )
+    }
+
+@app.get("/me", response_model=User)
+async def get_me(current_user: User = Depends(get_current_user)):
+    """Get current authenticated user info"""
+    return current_user
+
+@app.post("/logout")
+async def logout(current_user: User = Depends(get_current_user)):
+    """Logout user (client should delete token)"""
+    print(f" User logged out: {current_user.email}")
+    return {"message": "Successfully logged out"}
+
+# ==================== ANALYTICS ENDPOINTS ====================
 
 @app.get("/analyze")
 def analyze():
@@ -448,7 +595,8 @@ def health_check():
     return {
         "status": "healthy",
         "ai_enabled": True,
-        "engine": "Pathway + Gemini",
+        "auth_enabled": True,
+        "engine": "Pathway + Gemini + JWT Auth",
         "rag_status": "operational",
         "gemini_status": "active" if gemini_client else "fallback_mode",
         "knowledge_base_size": len(rag_system.knowledge_docs),
@@ -832,7 +980,7 @@ async def export_report(data: dict):
     footer = Paragraph(
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>"
         "<b>Powered by GreenGap Intelligence</b><br/>"
-        "Pathway AI + Google Gemini 2.5 | Real-time Sustainability Analytics<br/>"
+        "Pathway AI + Google Gemini 2.5 + JWT Auth | Real-time Sustainability Analytics<br/>"
         " Detecting Rebound Effects & Hidden Climate Loss",
         footer_style
     )
@@ -851,7 +999,7 @@ async def export_report(data: dict):
             }
         )
     except Exception as e:
-        print(f" PDF generation error: {e}")
+        print(f"PDF generation error: {e}")
         return {
             "error": "Failed to generate PDF report",
             "message": str(e)
