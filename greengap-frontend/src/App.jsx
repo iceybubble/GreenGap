@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import UserProfile from './components/UserProfile';
 import Home from "./pages/Home";
-import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Contact from "./pages/Contact";
@@ -14,9 +13,11 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Footer from "./components/Footer";
 import { useTheme } from "./contexts/ThemeContext";
+import { lazy, Suspense } from 'react';
 import "./App.css";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const Dashboard = lazy(() => import('./pages/Dashboard'));
 
 // Navigation component with auth awareness
 function Navigation() {
@@ -95,7 +96,13 @@ function AppContent() {
           path="/dashboard" 
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <Suspense fallback={
+                <div className="min-h-screen flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+                </div>
+              }>
+                <Dashboard />
+              </Suspense>
             </ProtectedRoute>
           } 
         />
@@ -103,7 +110,13 @@ function AppContent() {
           path="/analytics" 
           element={
             <ProtectedRoute>
-              <Analytics />
+              <Suspense fallback={
+                <div className="min-h-screen flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+                </div>
+              }>
+                <Analytics />
+              </Suspense>
             </ProtectedRoute>
           } 
         />
